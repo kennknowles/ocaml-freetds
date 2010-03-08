@@ -1,3 +1,7 @@
 *.cm[ioax]
+*.cmxa
+*.annot
+*.exe
+*.com
 # Generated
 Makefile

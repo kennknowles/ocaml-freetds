@@ -1,4 +1,4 @@
-#/bin/sh
+#!/bin/sh
 OCAMLC=`which ocamlc`
 if [ -z $OCAMLC ]; then
     echo Configuration cannot continue with ocamlc in your PATH
