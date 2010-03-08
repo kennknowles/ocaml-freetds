@@ -99,19 +99,16 @@ type data =
   | TINY of int
   | SMALL of int
   | INT of int
+  | INT32 of int32
+  | INT64 of string
   | FLOAT of float
-  | DATETIME
+  | DATETIME of string
   | MONEY of float
   | BIT of bool
   | BINARY of string
-  | NUMERIC
-  | DECIMAL
+  | NUMERIC of string
+  | DECIMAL of string
 
-type bound_columns
-
-external bind : dbprocess -> bound_columns = "ocaml_freetds_dbbind"
-    (** Allocate a datastructure to retrieve the data of each row. *)
-
-external nextrow : bound_columns -> data list = "ocaml_freetds_dbnextrow"
+external nextrow : dbprocess -> data list = "ocaml_freetds_dbnextrow"
     (** Retrieve the next row.
         @raise Not_found if no more ros are available. *)

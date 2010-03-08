@@ -97,8 +97,4 @@ type data =
   | NUMERIC of string (* FIXME: do better *)
   | DECIMAL of string (* FIXME: do better *)
 
-type bound_columns
-
-external bind : dbprocess -> bound_columns = "ocaml_freetds_dbbind"
-
-external nextrow : bound_columns -> data list = "ocaml_freetds_dbnextrow"
+external nextrow : dbprocess -> data list = "ocaml_freetds_dbnextrow"

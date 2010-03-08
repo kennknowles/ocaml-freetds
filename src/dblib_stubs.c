@@ -20,6 +20,7 @@
 
 #include <sybfront.h> /* sqlfront.h always comes first */
 #include <sybdb.h>
+#include <string.h>
 
 #include <caml/mlvalues.h>
 #include <caml/alloc.h>
@@ -199,271 +200,154 @@ value ocaml_freetds_dbcanquery(value vdbproc)
   CAMLreturn(Val_unit);
 }
 
-typedef struct {
-  DBPROCESS *conn; /* hold the connection to avoid mistakes */
-  int numcols;
-  int *ty;  /* array of the types into which the col data is converted */
-  int *is_null; /* -1 => NULL */
-  void **data; /* array of pointers to data for each column */
-} bound_columns;
 
-#define BOUND_VAL(v) (* (bound_columns *) Data_custom_val(v))
-#define BOUND_ALLOC()                                               \
-  alloc_custom(&bound_columns_ops, sizeof(bound_columns), 1, 30)
-
-/* Free the (possibly partially instianciated) bound coulon [b] */
-#define FREE_BOUND_COLUMNS(b, last_col)          \
-  free(b.ty);                                    \
-  free(b.is_null);                               \
-  for(i = 0; i < last_col; i++) free(b.data[i]); \
-  free(b.data)
-
-static void bound_columns_finalize(value v)
-{
-  int i;
-  bound_columns b = BOUND_VAL(v);
-  FREE_BOUND_COLUMNS(b, b.numcols);
-}
-
-static struct custom_operations bound_columns_ops = {
-  "freetds/bound_columns",
-  &bound_columns_finalize,
-  custom_compare_default,
-  custom_hash_default,
-  custom_serialize_default,
-  custom_deserialize_default
-};
-
-/* Reserve some space to hold the data of each column. */
-value ocaml_freetds_dbbind(value vdbproc)
+value ocaml_freetds_dbnextrow(value vdbproc)
 {
   CAMLparam1(vdbproc);
-  CAMLlocal1(vbound);
+  CAMLlocal4(vrow, vdata, vconstructor, vcons);
   DBPROCESS *dbproc = DBPROCESS_VAL(vdbproc);
-  bound_columns b;
-  int c, ty, len, i;
-
-#define CHECK_ALLOC(v)                           \
-  if (v == NULL) {                               \
-    FREE_BOUND_COLUMNS(b, c);                    \
-    caml_raise_out_of_memory();                  \
-  }
-
-#define BIND(dbproc, c, vartype, varlen)                                \
-  CHECK_ALLOC(b.data[c]);                                               \
-  if (dbbind(dbproc, c+1, vartype, varlen, b.data[c]) == FAIL           \
-      || dbnullbind(dbproc, c+1, &(b.is_null[c])) == FAIL) {                \
-    FREE_BOUND_COLUMNS(b, c);                                           \
-    failwith("Freetds.Dblib.bind: conversion failed (should not happen). " \
-             "Contact the maintainer of the Freetds module.");          \
-  }
-
-  b.numcols = dbnumcols(dbproc);
-  b.ty = malloc(b.numcols * sizeof(int));
-  b.is_null = malloc(b.numcols * sizeof(int));
-  b.data = malloc(b.numcols * sizeof(void *));
-  if (b.ty == NULL || b.len == NULL || b.data == NULL) {
-    FREE_BOUND_COLUMNS(b, 0); /* no col allocated yet */
-    caml_raise_out_of_memory();
-  }
-  for (c = 0; c < b.numcols; c++) {
-    switch (ty[c] = dbcoltype(dbproc, c+1)) {
-    case SYBCHAR:    /* fall-through */
-    case SYBVARCHAR:
-    case SYBTEXT:
-      /* Use VARYCHARBIND so there is no padding and no terminator \0
-         added which is convenient for OCaml as strings can contain '\0'. */
-      len = dbcollen(dbproc, c+1); /* max length, in bytes, of the data. */
-      b.data[c] = malloc(len);
-      BIND(dbproc, c, VARYCHARBIND, len);
-      break;
-    case SYBIMAGE:
-    case SYBBINARY:
-    case SYBVARBINARY:
-      len = dbcollen(dbproc, c+1);
-      b.data[c] = malloc(len);
-      BIND(dbproc, c, VARYBINBIND, len);
-      break;
-
-    case SYBINT1:
-    case SYBINT2:
-    case SYBINTN:
-    case SYBINT4:
-      /* convert to INT but keep the differences in b.ty to qualify them */
-      b.data[c] = malloc(sizeof(DBINT));
-      BIND(dbproc, c, INTBIND, 1);
-      break;
-    case SYBINT8:
-      /* FIXME: no conversion to int64!! */
-      len = + 1; /* terminating \0 */
-      b.size[c] = malloc(len);
-      BIND(dbproc, c, STRINGBIND, len);
-      break;
-
-    case SYBFLT8:
-    case SYBFLTN:
-    case SYBREAL:
-      b.size[c] = malloc(sizeof(DBFLT8));
-      BIND(dbproc, c, FLT8BIND, 1);
-      break;
-
-    case SYBNUMERIC:
-      b.size[c] = malloc(sizeof(DBDECIMAL));
-      BIND(dbproc, c, DECIMALBIND, 1);
-      break;
-    case SYBDECIMAL:
-      b.size[c] = malloc(sizeof(DBNUMERIC));
-      BIND(dbproc, c, NUMERICBIND, 1);
-      break;
-
-    case SYBBIT:
-      b.size[c] = malloc(sizeof(DBINT));
-      BIND(dbproc, c, INTBIND, 1);
-      break;
-
-    case SYBDATETIME:
-    case SYBDATETIME4:
-    case SYBDATETIMN:
-      b.size[c] = malloc(sizeof(DBDATETIME));
-      BIND(dbproc, c, DATETIMEBIND, 1);
-      break;
-
-    case SYBMONEY4:
-    case SYBMONEY:
-    case SYBMONEYN:
-      /* b.size[c] = malloc(sizeof(DBMONEY)); */
-      /* BIND(dbproc, c, MONEYBIND, 1); */
-      b.size[c] = malloc(sizeof(DBFLT8));
-      BIND(dbproc, c, FLT8BIND, 1);
-      break;
-    }
-  }
-  vbound = BOUND_ALLOC();
-  BOUND_VAL(vbound) = b;
-  CAMLreturn(vbound);
-
-#undef CHECK_ALLOC
-#undef BIND
-}
-
-
-value ocaml_freetds_dbnextrow(value vbound)
-{
-  CAMLparam1(vbound);
-  CAMLlocal4(vrow, vdata, , vcstr, vcons);
-  bound_columns b = BOUND_VAL(vbound);
-  RETCODE erc;
-  int c;
+  int c, ty, converted_len;
+  BYTE *data;
+  DBINT len;
+  int data_int;
+  char *data_char;
+  double data_double;
 
 /* Taken from the implementation of caml_copy_string */
-#derine COPY_STRING(res, s, len_bytes)           \
+#define COPY_STRING(res, s, len_bytes)           \
   res = caml_alloc_string(len);                  \
   memmove(String_val(res), s, len_bytes);
-  
+
+#define CONVERT_STRING(destlen)                                         \
+  data_char = malloc(destlen); /* printable size */                     \
+  converted_len =                                                       \
+    dbconvert(dbproc, ty, data, len,  SYBCHAR, (BYTE*) data_char, destlen); \
+  if (converted_len < 0) {                                              \
+    free(data_char);                                                    \
+    failwith("Freetds.nextrow: problem with copying strings. "          \
+             "Please contact the author of the Freetds bindings.");      \
+  } else {                                                              \
+    COPY_STRING(vdata, data, converted_len);                            \
+    free(data_char);                                                    \
+  }
+
+
 #define CONSTRUCTOR(tag, value) \
-  vcstr = caml_alloc(1, tag);   \
-  Store_field(vcstr, 0, value)
-  
-  switch (dbnextrow(BOUND_VAL(vbound).conn)) {
+  vconstructor = caml_alloc(1, tag);   \
+  Store_field(vconstructor, 0, value)
+
+  switch (dbnextrow(dbproc)) {
   case REG_ROW:
     vrow = Val_int(0); /* empty list [] */
-    for (c = b.numcols - 1; c >= 0; c--) {
-      if (b.is_null[c] == -1) {
-        vdata = Val_int(0); /* constant constructor NULL */
+    for (c = dbnumcols(dbproc); c >= 1; c--) {
+      data = dbdata(dbproc, c); /* pointer to the data, no copy! */
+      len = dbdatlen(dbproc, c); /* length, in bytes, of the data for
+                                    a column. */
+      if (len == 0) {
+        vconstructor = Val_int(0); /* constant constructor NULL */
       } else {
-        /* FIXME: Keep in sync with the decisions made in
-           ocaml_freetds_dbbind */
-        switch (ty[c]) {
+        switch (ty = dbcoltype(dbproc, c)) {
         case SYBCHAR:    /* fall-through */
         case SYBVARCHAR:
         case SYBTEXT:
-          COPY_STRING(vdata, b.data[c], dbdatlen(dbproc, c+1));
+          COPY_STRING(vdata, data, len);
           CONSTRUCTOR(0, vdata);
           break;
         case SYBIMAGE:
         case SYBBINARY:
         case SYBVARBINARY:
-          COPY_STRING(vdata, b.data[c], dbdatlen(dbproc, c+1));
+          COPY_STRING(vdata, data, len);
           CONSTRUCTOR(10, vdata);
           break;
-          
+
         case SYBINT1:
-          CONSTRUCTOR(1, Val_int(b.data[c]));
+          dbconvert(dbproc, ty, data, len,
+                    SYBINT4, (BYTE*) &data_int, sizeof(int));
+          CONSTRUCTOR(1, Val_int(data_int));
+          break;
         case SYBINT2:
-          CONSTRUCTOR(2, Val_int(b.data[c]));
+          dbconvert(dbproc, ty, data, len,
+                    SYBINT4, (BYTE*) &data_int, sizeof(int));
+          CONSTRUCTOR(2, Val_int(data_int));
+          break;
         case SYBINTN:
         case SYBINT4:
-        INT_CONSTUCTOR:
+          data_int = *((int *) data);
 #if OCAML_WORD_SIZE == 32
-          if (-1073741824 <= b.data[c] && b.data[c] < 1073741824)
-            CONSTRUCTOR(3, Val_int(b.data[c]));
+          if (-1073741824 <= data_int && data_int < 1073741824)
+            CONSTRUCTOR(3, Val_int(data_int));
           else /* require more than 31 bits allow for */
-            CONSTRUCTOR(4, caml_copy_int32(b.data[c]));
+            CONSTRUCTOR(4, caml_copy_int32(data_int));
 #else
-          CONSTRUCTOR(3, Val_int(b.data[c]));
-#fi
+          CONSTRUCTOR(3, Val_int(data_int));
+#endif
           break;
         case SYBINT8:
-          CONSTRUCTOR(5, copy_string(b.data[c]));
+          CONVERT_STRING(21);
+          CONSTRUCTOR(5, vdata);
           break;
-          
+
         case SYBFLT8:
+          CONSTRUCTOR(6, caml_copy_double(* (double *) data));
+          break;
         case SYBFLTN:
         case SYBREAL:
-          CONSTRUCTOR(6, caml_copy_double(b.data[c]));
+          dbconvert(dbproc, ty, data, len,  SYBFLT8,
+                    (BYTE*) &data_double, sizeof(double));
+          CONSTRUCTOR(6, caml_copy_double(data_double));
           break;
-          
+
         case SYBNUMERIC:
-          b.size[c] = malloc(sizeof(DBDECIMAL));
-          BIND(dbproc, c, DECIMALBIND, 1);
+          CONVERT_STRING(2.5 * len); /* FIXME: max size ? */
+          CONSTRUCTOR(5, vdata);
           break;
         case SYBDECIMAL:
-          b.size[c] = malloc(sizeof(DBNUMERIC));
-          BIND(dbproc, c, NUMERICBIND, 1);
+          CONVERT_STRING(2.5 * len); /* FIXME: max size ? */
+          CONSTRUCTOR(5, vdata);
           break;
-          
+
         case SYBBIT:
-          b.size[c] = malloc(sizeof(DBINT));
-          BIND(dbproc, c, INTBIND, 1);
+          CONSTRUCTOR(9, Val_bool(*data != '\0'));
           break;
-          
+
         case SYBDATETIME:
         case SYBDATETIME4:
         case SYBDATETIMN:
-          b.size[c] = malloc(sizeof(DBDATETIME));
-          BIND(dbproc, c, DATETIMEBIND, 1);
+          CONVERT_STRING(128); /* FIXME: max size ? */
+          CONSTRUCTOR(7, vdata);
           break;
-          
+
         case SYBMONEY4:
         case SYBMONEY:
         case SYBMONEYN:
-          b.size[c] = malloc(sizeof(DBMONEY));
-          BIND(dbproc, c, MONEYBIND, 1);
+          dbconvert(dbproc, ty, data, len,  SYBFLT8,
+                    (BYTE*) &data_double, sizeof(double));
+          CONSTRUCTOR(8, caml_copy_double(data_double));
           break;
         }
       }
       /* Place the data in front of the list [vrow]. */
       vcons = alloc_tuple(2);
-      Store_field(vcons, 0, );
+      Store_field(vcons, 0, vconstructor);
       Store_field(vcons, 1, vrow);
       vrow = vcons;
     }
     CAMLreturn(vrow);
     break;
-    
+
   case NO_MORE_ROWS:
     caml_raise_not_found();
     break;
-    
+
   case FAIL:
     failwith("Freetds.Dblib.nextrow");
     break;
-    
+
   case BUF_FULL:
     failwith("Freetds.Dblib.nextrow: buffer full (report to the developer "
              "of this library)");
     break;
-    
+
   default:
     /* FIXME: compute rows are ignored */
     CAMLreturn(Val_int(0)); /* row = [] */
