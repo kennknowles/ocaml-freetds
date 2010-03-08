@@ -1,0 +1,56 @@
+ROOT=.
+VERSION = "@PACKAGE_VERSION@"
+include Makefile.conf
+
+.PHONY: default all opt byte native install uninstall htdoc doc examples tests
+OCAML_ALL = byte $(filter-out byte, @OCAMLBEST@)
+default: $(OCAML_ALL)
+all: byte native tests
+opt: native
+htdoc: doc
+byte native install uninstall doc:
+	$(MAKE) -C src $@
+examples tests: default
+	$(MAKE) -C $@ $(OCAML_ALL)
+
+# Depends on the version number set in delimited_overloading.mli :
+freetds.godiva: freetds.godiva.in
+	@ sed -e "s/@PACKAGE@/$(PACKAGE)/" $< \
+	| sed -e "s/@VERSION@/$(VERSION)/" \
+	| sed -e "s/@TARBALL@/$(TARBALL)/" \
+	| sed -e "s/@DOWNLOAD@/$(OCAMLFORGE_FILE_NO)/" > $@
+	@ echo "Updated \"$@\"."
+
+# Assume the environment variable $GODI_LOCALBASE is set
+.PHONY: godi
+godi: freetds.godiva
+	godiva $<
+
+
+# "Force" a tag to be defined for each released tarball
+tar:
+	bzr export /tmp/$(TARBALL) -r "tag:$(VERSION)"
+	@echo "Created tarball '/tmp/$(TARBALL)'."
+
+.PHONY: web web-html tutorial
+web-html: doc
+	$(MAKE) -C doc $@
+web tutorial: doc examples
+	$(MAKE) -C doc $@
+
+
+.PHONY: sync-scm sync_scm
+sync-scm sync_scm:
+	bzr push  svn+ssh://scm.ocamlcore.org/svnroot/ocaml-freetds/trunk/
+
+.PHONY: clean dist-clean
+clean:
+	$(RM) $(wildcard *~ *.pdf *.ps *.png *.svg *.tex *.log) cairo.godiva
+	$(RM) -rf aclocal.m4 auto/ autom4te.cache/ config.status
+	$(MAKE) -C src $@
+	$(MAKE) -C tests $@
+	$(MAKE) -C examples $@
+#	$(MAKE) -C doc $@
+
+dist-clean::
+	$(RM) -r aclocal.m4 autom4te.cache config.log config.status

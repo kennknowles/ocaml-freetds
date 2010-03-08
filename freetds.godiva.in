@@ -1,0 +1,20 @@
+Package: godi-@PACKAGE@
+Version: @VERSION@
+Revision: 0
+Depends: godi-ocaml (>= 3.10), godi-findlib (>= 1.2)
+Build-Depends: godi-findlib (>= 1.2)
+Sources: http://forge.ocamlcore.org/frs/download.php/@DOWNLOAD@/@TARBALL@
+Homepage: https://forge.ocamlcore.org/projects/ocaml-freetds/
+Maintainer: Christophe Troestler <Christophe.Troestler@umons.ac.be>
+Options: opt
+Docfiles: README, LICENSE
+Description: Binding to the FreeTDS library.
+FreeTDS is a set of libraries for Unix and Linux that allows your programs
+to natively talk to Microsoft SQL Server and Sybase databases.
+.
+
+(* Local Variables: *)
+(* mode: conf-colon *)
+(* comment-start: "(*" *)
+(* comment-end: "*)" *)
+(* End: *)

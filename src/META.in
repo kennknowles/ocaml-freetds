@@ -1,0 +1,6 @@
+# Findlib META file for FreeTDS                                 -*-conf-*-
+name = "freetds"
+version = "@PACKAGE_VERSION@"
+description = "A binding to the FreeTDS library"
+archive(byte) = "freetds.cma"
+archive(native) = "freetds.cmxa"
