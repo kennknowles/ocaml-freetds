@@ -38,6 +38,12 @@ external use : dbprocess -> string -> unit = "ocaml_freetds_dbuse"
     (** [dbuse conn name] change the current database to [name].
         @raise Failure if the database cannot be used. *)
 
+external name : dbprocess -> string = "ocaml_freetds_dbname"
+    (** [name conn] returns the name of the current database. *)
+
+(************************************************************************)
+(** {2 Executing SQL queries and getting the results} *)
+
 external sqlexec : dbprocess -> string -> unit = "ocaml_freetds_dbsqlexec"
   (** Send the SQL command to the server and wait for an answer.
       @raise Failure if the SQL query is incorrect or another problem
@@ -102,7 +108,8 @@ type data =
   | INT32 of int32
   | INT64 of string
   | FLOAT of float
-  | DATETIME of string
+  | DATETIME of int * int * int * int * int * int * int * int
+      (** (year, month, day, hour, minute, second, millisecond, zone) *)
   | MONEY of float
   | BIT of bool
   | BINARY of string
@@ -112,3 +119,9 @@ type data =
 external nextrow : dbprocess -> data list = "ocaml_freetds_dbnextrow"
     (** Retrieve the next row.
         @raise Not_found if no more ros are available. *)
+
+external count : dbprocess -> int = "ocaml_freetds_dbcount"
+    (** Get count of rows processed.
+        - for insert/update/delete, count of rows affected.
+        - for select, count of rows returned, after all rows have been
+          fetched.    *)

@@ -108,6 +108,22 @@ value ocaml_freetds_dbuse(value vdbproc, value vdbname)
   CAMLreturn(Val_unit);
 }
 
+value ocaml_freetds_dbname(value vdbproc)
+{
+  CAMLparam1(vdbproc);
+  CAMLlocal1(vname);
+  char *name;
+  
+  name = dbname(DBPROCESS_VAL(vdbproc));
+  vname = caml_copy_string(name);
+  /* free(name); */ /* generate a segfault */
+  CAMLreturn(vname);
+}
+
+
+/* Executing SQL queries
+**********************************************************************/
+
 value ocaml_freetds_dbsqlexec(value vdbproc, value vsql)
 {
   CAMLparam2(vdbproc, vsql);
@@ -212,7 +228,8 @@ value ocaml_freetds_dbnextrow(value vdbproc)
   int data_int;
   char *data_char;
   double data_double;
-
+  DBDATEREC di;
+  
 /* Taken from the implementation of caml_copy_string */
 #define COPY_STRING(res, s, len_bytes)           \
   res = caml_alloc_string(len);                  \
@@ -231,8 +248,7 @@ value ocaml_freetds_dbnextrow(value vdbproc)
     free(data_char);                                                    \
   }
 
-
-#define CONSTRUCTOR(tag, value) \
+#define CONSTRUCTOR(tag, value)        \
   vconstructor = caml_alloc(1, tag);   \
   Store_field(vconstructor, 0, value)
 
@@ -243,7 +259,7 @@ value ocaml_freetds_dbnextrow(value vdbproc)
       data = dbdata(dbproc, c); /* pointer to the data, no copy! */
       len = dbdatlen(dbproc, c); /* length, in bytes, of the data for
                                     a column. */
-      if (len == 0) {
+      if (len == 0 || data == NULL) {
         vconstructor = Val_int(0); /* constant constructor NULL */
       } else {
         switch (ty = dbcoltype(dbproc, c)) {
@@ -313,8 +329,32 @@ value ocaml_freetds_dbnextrow(value vdbproc)
         case SYBDATETIME:
         case SYBDATETIME4:
         case SYBDATETIMN:
-          CONVERT_STRING(128); /* FIXME: max size ? */
-          CONSTRUCTOR(7, vdata);
+          if (dbdatecrack(dbproc, &di, (DBDATETIME *) data) == FAIL) {
+            failwith("Freetds.Dblib.nextrow: date conversion failed. "
+                     "Please contact the author of these bindings.");
+          }
+          vconstructor = caml_alloc(/* size: */ 8, /* tag: */ 7);
+#ifdef MSDBLIB
+         /* http://msdn.microsoft.com/en-us/library/aa937027%28SQL.80%29.aspx */
+          Store_field(vconstructor, 0, Val_int(di.year));
+          Store_field(vconstructor, 1, Val_int(di.month));
+          Store_field(vconstructor, 2, Val_int(di.day));
+          Store_field(vconstructor, 3, Val_int(di.hour));
+          Store_field(vconstructor, 4, Val_int(di.minute));
+          Store_field(vconstructor, 5, Val_int(di.second));
+          Store_field(vconstructor, 6, Val_int(di.millisecond));
+          Store_field(vconstructor, 7, Val_int(di.tzone));
+#else
+          /* From sybdb.h */
+          Store_field(vconstructor, 0, Val_int(di.dateyear));
+          Store_field(vconstructor, 1, Val_int(di.datemonth));
+          Store_field(vconstructor, 2, Val_int(di.datedmonth));
+          Store_field(vconstructor, 3, Val_int(di.datehour));
+          Store_field(vconstructor, 4, Val_int(di.dateminute));
+          Store_field(vconstructor, 5, Val_int(di.datesecond));
+          Store_field(vconstructor, 6, Val_int(di.datemsecond));
+          Store_field(vconstructor, 7, Val_int(di.datetzone));
+#endif
           break;
 
         case SYBMONEY4:
@@ -355,4 +395,8 @@ value ocaml_freetds_dbnextrow(value vdbproc)
 }
 
 
-
+value ocaml_freetds_dbcount(value vdbproc)
+{
+  CAMLparam1(vdbproc);
+  CAMLreturn(Val_int(DBPROCESS_VAL(vdbproc)));
+}

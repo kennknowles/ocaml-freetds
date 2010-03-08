@@ -32,6 +32,8 @@ external close : dbprocess -> unit = "ocaml_freetds_dbclose"
 
 external use : dbprocess -> string -> unit = "ocaml_freetds_dbuse"
 
+external name : dbprocess -> string = "ocaml_freetds_dbname"
+
 external sqlexec : dbprocess -> string -> unit = "ocaml_freetds_dbsqlexec"
 
 external cancel :  dbprocess -> unit = "ocaml_freetds_dbcancel"
@@ -90,7 +92,7 @@ type data =
   | INT32 of int32
   | INT64 of string (* FIXME: do better *)
   | FLOAT of float                      (* tag = 6 *)
-  | DATETIME of string (* FIXME: do better *)
+  | DATETIME of int * int * int * int * int * int * int * int
   | MONEY of float
   | BIT of bool
   | BINARY of string                    (* tag = 10 *)
@@ -98,3 +100,5 @@ type data =
   | DECIMAL of string (* FIXME: do better *)
 
 external nextrow : dbprocess -> data list = "ocaml_freetds_dbnextrow"
+
+external count : dbprocess -> int = "ocaml_freetds_dbcount"
