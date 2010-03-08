@@ -1,0 +1,6 @@
+# Specifications for ocaml-freetds
+requires = "str"
+version = "0.1"
+archive(byte) = "freetds.cma"
+archive(native) = "freetds.cmxa"
+linkopts = "-ccopt -lct"
