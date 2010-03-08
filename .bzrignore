@@ -1,7 +1,16 @@
+#							-*-conf-unix-*-
 *.cm[ioax]
 *.cmxa
 *.annot
 *.exe
 *.com
 # Generated
+.depend.ocaml
 Makefile
+aclocal.m4
+autom4te.cache/
+configure
+Makefile.ocaml
+config.log
+config.status
+src/META
