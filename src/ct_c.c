@@ -25,6 +25,7 @@
 #include <caml/callback.h>
 #include <caml/mlvalues.h>
 #include <caml/memory.h>
+#include <caml/fail.h>
 #include <caml/custom.h>
 
 void mltds_ct_ctx_finalize(value ctx);
@@ -97,7 +98,7 @@ CS_INT conprop_of_value(value field)
 
     if (field == hash_variant("Username"))      CAMLreturn(CS_USERNAME);
     else if (field == hash_variant("Password")) CAMLreturn(CS_PASSWORD);
-    else if (field == hash_variant("Appname"))  CAMLreturn(CS_APPNAME);
+    else /* if (field == hash_variant("Appname"))*/  CAMLreturn(CS_APPNAME);
 }
 
 CS_INT cmdtype_of_value(value cmdtype)
@@ -106,7 +107,7 @@ CS_INT cmdtype_of_value(value cmdtype)
     
     if ( cmdtype == hash_variant("Lang") )
         CAMLreturn(CS_LANG_CMD);
-    else if ( cmdtype == hash_variant("Rpc"))
+    else /* if ( cmdtype == hash_variant("Rpc")) */
         CAMLreturn(CS_RPC_CMD);
 }
 
@@ -253,7 +254,7 @@ value value_of_restype(CS_INT restype)
     if ( restype != CS_CMD_SUCCEED )
         raise_constant(*caml_named_value("cs_cmd_fail"));
 
-    CAMLreturn0;
+    CAMLreturn(Val_unit);
 }
 
 value resinfo_type_of_value(value resinfo)
@@ -264,7 +265,7 @@ value resinfo_type_of_value(value resinfo)
         CAMLreturn(CS_ROW_COUNT);
     else if ( resinfo == hash_variant("Cmd_number") )
         CAMLreturn(CS_CMD_NUMBER);
-    else if ( resinfo == hash_variant("Numdata") )
+    else /* if ( resinfo == hash_variant("Numdata") ) */
         CAMLreturn(CS_NUMDATA);
 }
 
@@ -358,11 +359,11 @@ CS_INT status_of_value(value status)
         
         if ( stat == hash_variant("CanBeNull") )
             result = CS_CANBENULL;
-        else if ( stat = hash_variant("NoData") )
+        else if ( stat == hash_variant("NoData") )
             result = CS_NODATA;
-        else if ( stat = hash_variant("Identity") )
+        else if ( stat == hash_variant("Identity") )
             result = CS_IDENTITY;
-        else if ( stat = hash_variant("Return") )
+        else if ( stat == hash_variant("Return") )
             result = CS_RETURN;
         
         /* Not tail recursive, but the list should be brief */
