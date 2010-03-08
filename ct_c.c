@@ -202,14 +202,6 @@ value value_of_datatype(int datatype)
     CAMLreturn(hash_variant("Illegal"));
 }
 
-/* FreeTDS doesn't define these, so I will - patch may be sent to them later */
-#define CS_SV_INFORM 0
-#define CS_SV_API_FAIL 1
-/* #define CS_SV_RETRY_FAIL 2  <- they _do_ define this one*/
-#define CS_SV_RESOURCE_FAIL 3
-#define CS_SV_INTERNAL_FAIL 6
-#define CS_SV_FATAL 7
-
 
 value value_of_severity(CS_INT severity)
 {
