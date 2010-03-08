@@ -1693,7 +1693,7 @@ class global_builder package =
 	    ("%.cmi", "%.ml", "$(COMPILE) -o $@ $<");
 	    ("%.cmo", "%.ml", "$(COMPILE) -o $@ $<");
 	    ("%.cmx", "%.ml", "$(COMPILE_OPT) -o $@ $<");
-	    ("%.o", "%.c", "gcc $(CFLAGS) -DNATIVE_CODE -I`ocamlc -where` -c -o $@ $<");
+	    ("%.o", "%.c", "gcc -fPIC $(CFLAGS) -DNATIVE_CODE -I`ocamlc -where` -c -o $@ $<");
     ]
     in
 object(self)

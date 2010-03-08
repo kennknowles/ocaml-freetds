@@ -19,6 +19,7 @@
 
 #include <ctpublic.h>
 #include <cspublic.h>
+#include <string.h>
 
 #include <caml/alloc.h>
 #include <caml/callback.h>
