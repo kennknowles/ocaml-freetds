@@ -4,22 +4,22 @@ if [ -z $OCAMLC ]; then
     echo Configuration cannot continue with ocamlc in your PATH
     exit
 fi
-sed -e '1,/(\* \*)/d' < $0 > .ocamlconf_tmp.ml
-$OCAMLC -w m str.cma unix.cma -impl .ocamlconf_tmp.ml -o .ocamlconf_tmp.exe
-./.ocamlconf_tmp.exe "$@"
-rm .ocamlconf_tmp.exe .ocamlconf_tmp.ml .ocamlconf_tmp.cmo .ocamlconf_tmp.cmi
+sed -e '1,/(\* \*)/d' < $0 > configure_tmp.ml
+$OCAMLC -w m str.cma unix.cma -impl configure_tmp.ml -o configure_tmp.exe
+./configure_tmp.exe "$@"
+rm configure_tmp.exe configure_tmp.ml configure_tmp.cmo configure_tmp.cmi
 exit
 (* *)
 module Util : sig
-(*                                                     
+(*
   This file is part of ocamlconf - An O'Caml build tool
   Copyright (C) 2003 Kenneth Knowles
-  
+
   ocamlconf is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 2 of the License, or
   (at your option) any later version.
-  
+
   ocamlconf is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -71,15 +71,15 @@ val prefix : string -> string list -> string list
 val join : ?delim:string -> string list -> string
 end
 = struct
-(*                                                     
+(*
   This file is part of ocamlconf - An O'Caml build tool
   Copyright (C) 2003 Kenneth Knowles
-  
+
   ocamlconf is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 2 of the License, or
   (at your option) any later version.
-  
+
   ocamlconf is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -106,7 +106,7 @@ let file_ext_index filename =
     let len = String.length filename in
     let reg = Str.regexp "\\." in
     Str.search_backward reg filename (len - 1)
-        
+
 let file_extension filename =
     try
         let len = String.length filename in
@@ -114,14 +114,13 @@ let file_extension filename =
         String.sub filename (index + 1) (len - index - 1)
     with
         | Not_found -> ""
-              
+
 let new_ext filename ext =
-    try
-        let len = String.length filename in
-        let index = file_ext_index filename in
-        (String.sub filename 0 (index + 1)) ^ ext
-    with
-        | Not_found -> filename ^ "." ^ ext
+  try
+    let index = file_ext_index filename in
+    (String.sub filename 0 (index + 1)) ^ ext
+  with
+    Not_found -> filename ^ "." ^ ext
 
 
 (* Executes the given string in a shell, and returns what came through stdout *)
@@ -136,18 +135,18 @@ let chomp_char c s =
 
 let chomp_eol = chomp_char '\n'
 
-let escape_slashes s = 
+let escape_slashes s =
 	Str.global_replace (Str.regexp "/") "\\/" s
 
 (* for now, it uses a stupid temporary file because i'm dumb, and also
 clips the stdout crap to 100 chars unless otherwise requested*)
-let shell_capture ?(maxchars = 100) command = 
+let shell_capture ?(maxchars = 100) command =
 	let inchannel = Unix.open_process_in command in
 	let buf = String.make maxchars ' ' in
 
 	let len = input inchannel buf 0 maxchars in
 	let result = String.sub buf 0 len in
-	
+
 	ignore (Unix.close_process_in inchannel);
 	chomp_eol result
 end
@@ -155,17 +154,17 @@ module CmdLineTools : sig
 (*
   This file is part of ocamlconf - An O'Caml build tool
   Copyright (C) 2003 Kenneth Knowles
-  
+
   ocamlconf is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 2 of the License, or
   (at your option) any later version.
-  
+
   ocamlconf is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
   GNU General Public License for more details.
-  
+
   You should have received a copy of the GNU General Public License
   along with ocamlconf; if not, write to the Free Software
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -175,7 +174,7 @@ module CmdLineTools : sig
 
 (** These are the tools which ocamlconf knows about *)
 type tool =
-        [ 
+        [
         | `cc
         | `ocamlc
         | `ocamldoc
@@ -183,7 +182,7 @@ type tool =
         | `ocamlmklib
         | `ocamlmktop
         | `ocamlopt
-        | `ocamlyacc 
+        | `ocamlyacc
         ]
 
 type flags = string list
@@ -196,7 +195,7 @@ type map
   map to the string ["ocamlc"] *)
 val defaultmap : map
 
-(** [replace_command map tool command] 
+(** [replace_command map tool command]
   Returns a map identical to [map] but with the command for [tool] set to [command] *)
 val replace_command : map -> tool -> string -> map
 
@@ -216,24 +215,24 @@ val getstring : map -> tool -> string
 (** Creates a set of command lines from a list.  Each item in the list is
   pair [tool, flagstring] where the flagstring is naïvely set to the flags
   for the command *)
-val map_of_list : (tool * string) list -> map 
+val map_of_list : (tool * string) list -> map
 end
 = struct
 
 (*
   This file is part of ocamlconf - An O'Caml build tool
   Copyright (C) 2003 Kenneth Knowles
-  
+
   ocamlconf is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 2 of the License, or
   (at your option) any later version.
-  
+
   ocamlconf is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
   GNU General Public License for more details.
-  
+
   You should have received a copy of the GNU General Public License
   along with ocamlconf; if not, write to the Free Software
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -241,12 +240,12 @@ end
 
 open Printf
 
-    type tool = [ `ocamlc | `ocamlmktop | `ocamlopt | `ocamlyacc | 
+    type tool = [ `ocamlc | `ocamlmktop | `ocamlopt | `ocamlyacc |
                         `ocamllex | `ocamldoc | `cc | `ocamlmklib ]
-    
-    module ToolMap = Map.Make( struct 
+
+    module ToolMap = Map.Make( struct
                                    type t = tool
-                                   let compare = Pervasives.compare 
+                                   let compare = Pervasives.compare
                                end )
 
     type flags = string list
@@ -256,7 +255,7 @@ open Printf
     type command_line = string * flags
 
     type map = command_line ToolMap.t
- 
+
     let defaultmap = List.fold_right (fun (tool,command) map -> ToolMap.add tool (command,[]) map)
         [
             `ocamlc, "ocamlc";
@@ -277,11 +276,11 @@ open Printf
     let add_flag map tool flag =
         let (cmd, current) = ToolMap.find tool map in
         ToolMap.add tool (cmd, current @ [flag]) map
-    
+
     let command map tool = fst (ToolMap.find tool map)
     let flags map tool = snd (ToolMap.find tool map)
 
-    let getstring map tool = 
+    let getstring map tool =
         let (cmd, flags) = ToolMap.find tool map in
         sprintf "%s %s" cmd (String.concat " " flags)
 
@@ -327,17 +326,17 @@ end
 (*
   This file is part of ocamlconf - An O'Caml build tool
   Copyright (C) 2003 Kenneth Knowles
-  
+
   ocamlconf is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 2 of the License, or
   (at your option) any later version.
-  
+
   ocamlconf is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
   GNU General Public License for more details.
-  
+
   You should have received a copy of the GNU General Public License
   along with ocamlconf; if not, write to the Free Software
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -348,11 +347,11 @@ type known_filetype = [ `mli | `ml | `mll | `mly | `c | `cmi | `cmo | `cmx | `o 
 
 module SourceMap = Map.Make( struct
                                  type t = known_filetype
-                                 let compare = Pervasives.compare 
+                                 let compare = Pervasives.compare
                              end )
 
 type t = (string list) SourceMap.t
-        
+
 let empty = SourceMap.empty
 
 (* Returns a list of all the types of sources specified, in the order they
@@ -372,7 +371,7 @@ let all sources =
         (fun sourcetype sourcelist all_list -> all_list @ sourcelist)
         sources
         []
-        
+
 
 let append sources filemappings =
     List.fold_left
@@ -399,13 +398,13 @@ let add_by_extension sources file =
 				  `cmx, [new_ext file "cmx"];
 				  `other, [new_ext file "o"]
               ]
-              
+
         | "c" ->
               append sources [
                   `c, [file];
                   `o, [new_ext file "o"]
               ]
-              
+
         | "mll" ->
               append sources [
                   `mll, [file];
@@ -415,7 +414,7 @@ let add_by_extension sources file =
 				  `cmx, [new_ext file "cmx"];
 				  `other, [new_ext file "o"]
               ]
-              
+
 		| "mly" ->
               append sources [
                   `mly, [file];
@@ -426,10 +425,10 @@ let add_by_extension sources file =
 				  `cmx, [new_ext file "cmx"];
 				  `other, [new_ext file "o"]
               ]
-              
+
         | _ -> sources
-              
-let of_list files = 
+
+let of_list files =
     List.fold_left add_by_extension empty files
 
 
@@ -456,17 +455,17 @@ end
 (*
   This file is part of ocamlconf - An O'Caml build tool
   Copyright (C) 2003 Kenneth Knowles
-  
+
   ocamlconf is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 2 of the License, or
   (at your option) any later version.
-  
+
   ocamlconf is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
   GNU General Public License for more details.
-  
+
   You should have received a copy of the GNU General Public License
   along with ocamlconf; if not, write to the Free Software
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -477,18 +476,17 @@ type t = {
     cmxa : string list;
     cma : string list
 }
-            
+
 let empty = {
 	cmxa = [];
     cma = [];
 }
-                    
-                    
+
+
 let add libs libname =
-    {libs with
-         cma = libs.cma @ [libname ^ ".cma"];
-         cmxa = libs.cmxa @ [libname ^ ".cmxa"]}
-    
+  { cma = libs.cma @ [libname ^ ".cma"];
+    cmxa = libs.cmxa @ [libname ^ ".cmxa"] }
+
 let of_list libs =
     List.fold_left add empty libs
 end
@@ -496,17 +494,17 @@ module Product : sig
 (*
   This file is part of ocamlconf - An O'Caml build tool
   Copyright (C) 2003 Kenneth Knowles
-  
+
   ocamlconf is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 2 of the License, or
   (at your option) any later version.
-  
+
   ocamlconf is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
   GNU General Public License for more details.
-  
+
   You should have received a copy of the GNU General Public License
   along with ocamlconf; if not, write to the Free Software
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -515,7 +513,7 @@ module Product : sig
 class virtual base : string -> object method name : string end
 
 (** Where/how to install the target *)
-type destination = 
+type destination =
         [
         | `bin				(** Defaults to /usr/local/bin *)
         | `lib				(** Defaults to /usr/local/lib/ocaml/packagename - incomplete *)
@@ -567,13 +565,13 @@ object
     method sources : string list
     method has_c_sources : bool
 end
-    
+
 class virtual ocamlfind :
     findlibs:string list ->
-    string -> 
-object 
-    method findlibs : string list 
-    method name : string 
+    string ->
+object
+    method findlibs : string list
+    method name : string
 end
 
 class virtual installed :
@@ -688,17 +686,17 @@ end
 (*
   This file is part of ocamlconf - An O'Caml build tool
   Copyright (C) 2003 Kenneth Knowles
-  
+
   ocamlconf is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 2 of the License, or
   (at your option) any later version.
-  
+
   ocamlconf is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
   GNU General Public License for more details.
-  
+
   You should have received a copy of the GNU General Public License
   along with ocamlconf; if not, write to the Free Software
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -715,36 +713,36 @@ class virtual base name = object(self)
     method name : string = name
 end
 
-        
+
 (* Some convenient mixin-classes *)
-class virtual sourced 
+class virtual sourced
     ?(source_filetypes = [`mli; `ml; `c])
     ?(cleaned_filetypes = [`cmi; `cmo; `cmx; `o; `other])
     ~sources
-    name 
-    = 
+    name
+    =
 object(self)
     inherit base name
-        
+
     method has_c_sources = Sources.get sources [`c] <> []
     method sources = Sources.get sources source_filetypes
     method cleaned = Sources.get sources cleaned_filetypes
 end
-    
-class virtual caml 
+
+class virtual caml
     ~sources
-    ?(libs = Libs.empty) 
+    ?(libs = Libs.empty)
     name
     =
 object(self)
     inherit sourced ~sources name as super
-    
+
     method interfaces = Sources.get sources [`cmi]
     method byte_objects = Sources.get sources [`cmo]
     method obj_objects = Sources.get sources [`o]
     method byte_libs = libs.Libs.cma
 end
-    
+
 class virtual opt_caml
     ~sources
     ?(libs = Libs.empty)
@@ -756,12 +754,12 @@ object(self)
     method opt_objects = Sources.get sources [`cmx]
     method opt_libs = libs.Libs.cmxa
 end
-    
 
-class virtual ocamlfind 
+
+class virtual ocamlfind
     ~findlibs
-    name 
-    = 
+    name
+    =
 object(self)
     inherit base name
 
@@ -786,12 +784,12 @@ object(self)
     inherit installed ~dest name
 end
 
-class executable 
+class executable
     ?(sources = Sources.empty)
     ?(findlibs = [])
     ?(libs = Libs.empty)
     ?(dest = `bin)
-	name 
+	name
     =
 object(self)
     inherit base name as super
@@ -807,7 +805,7 @@ class toplevel
     ?(findlibs = [])
     ?(libs = Libs.empty)
     ?(dest = `nowhere)
-	name 
+	name
     =
 object(self)
     inherit base name as super
@@ -815,7 +813,7 @@ object(self)
     inherit ocamlfind name ~findlibs as ocamlfind
     inherit installed ~dest name
 end
-        
+
 class documentation
     ?(findlibs = [])
     ?(sources = Sources.empty)
@@ -824,7 +822,7 @@ class documentation
     =
 object(self)
     inherit ocamlfind ~findlibs name as ocamlfind
-    inherit sourced 
+    inherit sourced
         ~source_filetypes:[`mli; `ml]
         ~cleaned_filetypes:[]
         ~sources
@@ -836,7 +834,7 @@ object(self)
     method texi_file = name ^ ".texi"
     method dot_file = name ^ ".dot"
     method latex_file = name ^ ".text"
-    
+
 end
 
 class library
@@ -845,14 +843,14 @@ class library
 	?(findlibs = [])
 	?(libs = Libs.empty)
     ?(dest = `findlib)
-	name 
+	name
     =
 object(self)
     inherit base name as super
     inherit opt_caml ~sources ~libs name as caml
     inherit ocamlfind ~findlibs name as ocamlfind
     inherit installed ~dest name
-        
+
     method cma_name = name ^ ".cma"
     method cmxa_name = name ^ ".cmxa"
     method cmxa_a_name = name ^ ".a"
@@ -860,7 +858,7 @@ object(self)
     method c_so_name = "dll" ^ name ^ ".so"
     method has_c_sources = ([] <> Sources.get sources [`c])
     method shared = shared
-                               
+
     method cma_c_deps =
         match self # has_c_sources, shared with
             | false, _ -> []
@@ -876,17 +874,17 @@ module Package : sig
 (*
   This file is part of ocamlconf - An O'Caml build tool
   Copyright (C) 2003 Kenneth Knowles
-  
+
   ocamlconf is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 2 of the License, or
   (at your option) any later version.
-  
+
   ocamlconf is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
   GNU General Public License for more details.
-  
+
   You should have received a copy of the GNU General Public License
   along with ocamlconf; if not, write to the Free Software
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -980,23 +978,23 @@ end
 (*
   This file is part of ocamlconf - An O'Caml build tool
   Copyright (C) 2003 Kenneth Knowles
-  
+
   ocamlconf is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 2 of the License, or
   (at your option) any later version.
-  
+
   ocamlconf is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
   GNU General Public License for more details.
-  
+
   You should have received a copy of the GNU General Public License
   along with ocamlconf; if not, write to the Free Software
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-type product = 
+type product =
         [
         | `executable of Product.executable
         | `library of Product.library
@@ -1005,21 +1003,21 @@ type product =
         | `toplevel of Product.toplevel
         ]
 
-let library ?dest ?shared ?sources ?findlibs ?libs name = 
+let library ?dest ?shared ?sources ?findlibs ?libs name =
     `library (new Product.library ?dest ?shared ?sources ?findlibs ?libs name)
-    
+
 let executable ?sources ?findlibs ?libs ?dest name =
     `executable (new Product.executable ?sources ?findlibs ?libs ?dest name)
-    
-let script ?dest name = 
+
+let script ?dest name =
     `script (new Product.script ?dest name)
-    
-let toplevel ?sources ?findlibs ?libs ?dest ?findlibs name = 
+
+let toplevel ?sources ?findlibs ?libs ?dest ?findlibs name =
     `toplevel (new Product.toplevel ?sources ?findlibs ?libs ?dest name)
 
 let documentation ?findlibs ?sources name =
     `documentation (new Product.documentation ?findlibs ?sources name)
-    
+
 
 type t = {
 	package : string;
@@ -1053,7 +1051,7 @@ let create
 	?(includes = [])
 	?(findlib_installed_files = [])
 	?(findlib_installs_opt = true)
-	?(command_line = CmdLineTools.defaultmap) 
+	?(command_line = CmdLineTools.defaultmap)
     products
     =
     {
@@ -1078,17 +1076,17 @@ module AutoMake : sig
 (*
   This file is part of ocamlconf - An O'Caml build tool
   Copyright (C) 2003 Kenneth Knowles
-  
+
   ocamlconf is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 2 of the License, or
   (at your option) any later version.
-  
+
   ocamlconf is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
   GNU General Public License for more details.
-  
+
   You should have received a copy of the GNU General Public License
   along with ocamlconf; if not, write to the Free Software
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -1097,11 +1095,11 @@ module AutoMake : sig
 
 (** A module for generating makefiles for ocaml projects.  It mostly contains shortcut
   functions in {!Product} and {!Package} modules.
-  
-  
+
+
   The important targets provided by the generated makefile are:
-  all, byte, opt, doc, install, install-opt, clean, distclean, tar, bzip2, gzip 
-  
+  all, byte, opt, doc, install, install-opt, clean, distclean, tar, bzip2, gzip
+
   Planned targets: rpm, deb *)
 
 (** The opaque type of a makefile 'target' containing all its metadata.  All targets
@@ -1118,7 +1116,7 @@ val library :
     ?findlibs:string list ->
     ?shared:bool ->
     ?dest:Product.destination ->
-    string -> 
+    string ->
     Package.product
 
 (** See {!AutoMake.library} *)
@@ -1127,7 +1125,7 @@ val executable :
     ?libs:string list ->
     ?findlibs:string list ->
     ?dest:Product.destination ->
-    string -> 
+    string ->
     Package.product
 
 (** See {!AutoMake.library} *)
@@ -1136,14 +1134,14 @@ val toplevel :
     ?libs:string list ->
     ?findlibs:string list ->
     ?dest:Product.destination ->
-    string -> 
+    string ->
     Package.product
 
 (** See {!AutoMake.library} *)
 val documentation :
-    ?sources:string list -> 
+    ?sources:string list ->
     ?findlibs:string list ->
-    string -> 
+    string ->
     Package.product
 
 (** See {!AutoMake.library} *)
@@ -1171,8 +1169,8 @@ val package :
     ?findlib_installs_opt : bool ->
     ?flags : (CmdLineTools.tool * string) list ->
     ?cleaned : string list ->
-	?debug:bool -> 
-	Package.product list -> 
+	?debug:bool ->
+	Package.product list ->
     Package.t
 
 (** {6 Automatically generating a makefile} *)
@@ -1186,7 +1184,7 @@ val output_omakefile : ?filename : string -> autopackage -> unit*)
 (** {6 Deprecated main function} *)
 
 (** This function is exactly [AutoMake.output_makefile (AutoMake.autopackage ...)] *)
-val output : 
+val output :
 	?package : string ->
     ?version : string ->
     ?destdir : string ->
@@ -1200,8 +1198,8 @@ val output :
     ?findlib_installs_opt : bool ->
     ?flags : (CmdLineTools.tool * string) list ->
     ?cleaned : string list ->
-	?debug:bool -> 
-	Package.product list -> 
+	?debug:bool ->
+	Package.product list ->
     unit
 
 end
@@ -1210,17 +1208,17 @@ end
 (*
   This file is part of ocamlconf - An O'Caml build tool
   Copyright (C) 2003 Kenneth Knowles
-  
+
   ocamlconf is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 2 of the License, or
   (at your option) any later version.
-  
+
   ocamlconf is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
   GNU General Public License for more details.
-  
+
   You should have received a copy of the GNU General Public License
   along with ocamlconf; if not, write to the Free Software
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -1240,7 +1238,7 @@ module Makefile = struct
 
     let indent indentation str =
         (Str.global_replace (Str.regexp "^") indentation (Util.chomp_eol str)) ^ "\n"
-        
+
     let rec pretty_concat ?(width = 80) ?(len = 0) ?(str = "") filelist =
 	    match filelist with
 	        | [] -> str
@@ -1253,57 +1251,57 @@ module Makefile = struct
     let pretty_varvalue name value =
 	    if name = "" then sprintf "%s\n" value else (
 	        if (String.length name) + (String.length value) + 3 > max_width then
-		        sprintf "%s = \\\n\t%s\n" 
+		        sprintf "%s = \\\n\t%s\n"
 			        name
 			        (pretty_concat ~width:max_width (Str.split (Str.regexp "[ \t\n]+") value))
 	        else
 		        sprintf "%s = %s\n" name value )
 
     let render ?(channel = stdout) vars deps =
-	    List.iter 
+	    List.iter
 		    (fun (name,value) -> output_string channel (pretty_varvalue name value))
 		    vars;
 
 	    output_string channel "\n";
 
-	    List.iter 
-		    (fun (name,deps,action) -> 
+	    List.iter
+		    (fun (name,deps,action) ->
                  if name <> "" then
-			         fprintf channel 
+			         fprintf channel
                          "%s: %s\n%s\n" name deps (if action <> "" then indent "\t" action else ""))
-                         
+
 		    deps
 
 end
 
 module Install = struct
 
-    let dest_dir = function	
+    let dest_dir = function
 	    | `bin -> "$(PREFIX_DESTDIR)/bin"
 	    | `lib -> "$(PREFIX_DESTDIR)lib"
         | `other s -> s
-	    | `nowhere 
+	    | `nowhere
         | `findlib -> raise (Invalid_argument "dest_dir")
-              
+
     let ensure_dir dest =
         sprintf "install -d %s" dest
-            
+
     let install ~dest ~mode name =
         let destination = dest_dir dest in
         (ensure_dir destination) ^ "\n" ^
 	    sprintf "install -m %i %s %s/%s" mode name destination name
-            
+
     let uninstall ~dest name =
         let destination = dest_dir dest in
         sprintf "rm -f %s/%s" destination name
-            
+
 end
 
 
 
 type global_target = [ `all | `opt | `byte | `doc | `top | `dep |
                            `clean | `install | `install_opt | `uninstall | `findlib]
-        
+
 class type make_builder = object
     method globals : global_target -> string list
     method vars : Makefile.var list
@@ -1315,26 +1313,26 @@ end
 
 (* This module pretty much contains a bunch of classes that inherit from the
    global Product modules *)
-              
+
 open Util
 
 let variable product name value = sprintf "%s_%s" product#name name, value
 
 let source_vars product = [variable product "SOURCES" (join (product # sources))]
 
-let byte_vars product = 
-    [ 
+let byte_vars product =
+    [
 		variable product "OBJECTS" (join (product # byte_objects));
         variable product "LIBS" (join (product # byte_libs));
 		variable product "O_OBJECTS" (join (product # obj_objects));
     ]
-    
+
 let opt_vars product =
     [
         variable product "OPT_OBJECTS" (join (product # opt_objects));
         variable product "OPT_LIBS" (join (product # opt_libs));
     ]
-    
+
 let findlib_vars product = [variable product "FINDLIBS" (join (product # findlibs))]
 
 class installer
@@ -1355,30 +1353,30 @@ object(self)
         else
             match which with
                 | `install -> if dest <> `findlib then [install_name] else []
-                      
-                | `install_opt -> 
+
+                | `install_opt ->
                       (match dest, install_opt_name with
                            | _, None
                            | `findlib, _ -> []
                            | _, Some s -> [s])
-                      
+
                 | `uninstall ->  (* Almost an "if" but it could expand *)
                       (match dest, install_opt_name with
                            | `findlib, _ -> []
                            | _, _ -> [uninstall_name])
-                      
+
                 | `findlib ->
                       (match dest, findlib_installs_opt with
                            | `findlib, false -> byte_names
                            | `findlib, true -> byte_names @ opt_names
                            | _, _ -> [])
-                      
+
                 | _ -> failwith "Invalid global passed to installer"
-                                
+
     method rules =
         let install_rule (file, mode) = Install.install ~dest ~mode file in
         let uninstall_rule (file,_) = Install.uninstall ~dest file in
-        
+
         match dest with
             | `nowhere | `findlib -> []
             | _ ->
@@ -1402,27 +1400,27 @@ object(self)
                                  join opt_names,
                                  join ~delim:"\n" (List.map install_rule opt)
                              ])
-                  
+
 end
-        
+
 class script_builder script =
     let installer = new installer
                         ~dest:(script # destination)
-                        ~byte:[script # name, 755] 
+                        ~byte:[script # name, 755]
                         ("install-" ^ script # name)
     in
 object(self)
     method globals (which : global_target) =
         match which with
             | `install | `uninstall | `findlib | `install_opt -> installer # globals which
-            
+
             | _ -> []
-                  
+
     method vars = ([] : Makefile.var list)
     method rules = installer # rules
 end
 
-    
+
 class executable_builder executable =
     let installer =
         new installer
@@ -1439,30 +1437,30 @@ object(self)
             | `install_opt
             | `uninstall
             | `findlib -> installer # globals which
-                  
+
             | `dep -> executable # sources
             | `all | `byte -> [executable # name]
             | `opt -> [executable # opt_name]
 
-            | `clean -> 
-                  [executable # name; 
-                   executable # opt_name] 
+            | `clean ->
+                  [executable # name;
+                   executable # opt_name]
                   @ (executable # cleaned)
 
             | `doc | `top -> []
-                  
-    method vars = (source_vars executable) @ (byte_vars executable) 
+
+    method vars = (source_vars executable) @ (byte_vars executable)
                   @ (opt_vars executable) @ (findlib_vars executable)
-                      
+
     method rules =
         let name = executable # name in
         [
 		    (name,
              sprintf "$(OBJECTS) $(O_OBJECTS) $(%s_OBJECTS) $(%s_O_OBJECTS)" name name,
 			 sprintf "$(LINK) $(%s_FINDLIBS) $(%s_LIBS) -o $@ $(O_OBJECTS) \
-                                  $(OBJECTS) $(%s_O_OBJECTS) $(%s_OBJECTS)" 
+                                  $(OBJECTS) $(%s_O_OBJECTS) $(%s_OBJECTS)"
 				 name name name name);
-            
+
 		    (executable # opt_name,
              sprintf "$(OPT_OBJECTS) $(O_OBJECTS) $(%s_OPT_OBJECTS) $(%s_O_OBJECTS)" name name,
 			 sprintf "$(LINK_OPT) $(%s_FINDLIBS) $(%s_OPT_LIBS) -o $@ \
@@ -1471,7 +1469,7 @@ object(self)
         ]
         @
         (installer # rules)
-	        
+
 end
 
 class toplevel_builder toplevel =
@@ -1491,30 +1489,30 @@ object(self)
             | `all | `opt | `byte | `doc -> []
 
     method vars = (byte_vars toplevel) @ (findlib_vars toplevel) @ (source_vars toplevel)
-                      
+
     method rules =
         let name = toplevel # name in
         [
 		    (name,
              sprintf "$(OBJECTS) $(O_OBJECTS) $(%s_OBJECTS) $(%s_O_OBJECTS)" name name,
 			 sprintf "$(MKTOP) $(%s_FINDLIBS) $(%s_LIBS) -o $@ $(OBJECTS) \
-                                  $(O_OBJECTS) $(%s_OBJECTS) $(%s_O_OBJECTS)" 
+                                  $(O_OBJECTS) $(%s_OBJECTS) $(%s_O_OBJECTS)"
 				 name name name name);
         ]
-        @ 
+        @
         (installer # rules)
-	        
+
 end
-    
+
 class documentation_builder docs =
 object(self)
-    method globals (which : global_target) = 
+    method globals (which : global_target) =
         match which with
             | `dep -> docs # sources
             | `doc -> [docs # name ^ ".html"]
             | `clean -> []
             | `opt | `all | `byte | `top | `install | `uninstall | `findlib | `install_opt -> []
-                  
+
     method vars = (source_vars docs) @ (findlib_vars docs)
 
     method rules =
@@ -1548,7 +1546,7 @@ class library_builder library =
         (library # c_so_name,
          sprintf "$(O_OBJECTS) $(%s_O_OBJECTS)" library # name,
          sprintf "$(LINKLIB_SHARED) -o $@ $(O_OBJECTS) $(%s_O_OBJECTS)" library # name) in
-    
+
     let cma_install, cmxa_install, cmxa_a_install, c_a_install, c_so_install =
         (library # cma_name, 644),
         (library # cmxa_name, 644),
@@ -1564,9 +1562,9 @@ class library_builder library =
                                    | false, _ -> [cma_install]
                                    | true, false -> [cma_install; c_a_install]
                                    | true, true -> [cma_install; c_a_install; c_so_install])
-                        ~opt:(if library # has_c_sources then 
-                                  [cmxa_install; cmxa_a_install; c_a_install] 
-                              else 
+                        ~opt:(if library # has_c_sources then
+                                  [cmxa_install; cmxa_a_install; c_a_install]
+                              else
                                   [cmxa_install; cmxa_a_install])
                         ("install-" ^ library # cma_name)
     in
@@ -1578,24 +1576,24 @@ object(self)
             variable library "C_STATIC_LIBS" (sprintf "-cclib -l%s" name);
             variable library "C_SHARED_LIBS" (sprintf "-cclib -l%s -dllib -l%s" name name);
         ]
-        
+
 
     val cma_rule =
-        let cma_c_flags = 
+        let cma_c_flags =
             match library # has_c_sources, library # shared with
                 | false, _ -> ""
                 | true, false -> sprintf " $(%s_C_STATIC_LIBS)" name
-                | true, true -> sprintf " $(%s_C_SHARED_LIBS)" name 
+                | true, true -> sprintf " $(%s_C_SHARED_LIBS)" name
         in
 		(library # cma_name,
          sprintf "$(OBJECTS) $(%s_OBJECTS) %s" library#name (join library#cma_c_deps),
 		 sprintf "$(LINKLIB) $(%s_FINDLIBS) %s $(%s_LIBS) -o $@ \
-                              $(OBJECTS) $(%s_OBJECTS)" 
+                              $(OBJECTS) $(%s_OBJECTS)"
 			 name cma_c_flags name name)
-        
+
     val cmxa_rule =
-        let cmxa_c_flags = 
-            if library # has_c_sources then sprintf "$(%s_C_STATIC_LIBS)" name else "" 
+        let cmxa_c_flags =
+            if library # has_c_sources then sprintf "$(%s_C_STATIC_LIBS)" name else ""
         in
         (library # cmxa_name,
          sprintf "$(OPT_OBJECTS) $(%s_OPT_OBJECTS) %s" name (join library#cmxa_c_deps),
@@ -1611,18 +1609,18 @@ object(self)
             | `all -> [library # cma_name]
             | `opt -> [library # cmxa_name]
             | `byte -> [library # cma_name]
-            | `clean -> [library # cma_name; 
+            | `clean -> [library # cma_name;
                          library # cmxa_name;
                          library # cmxa_a_name;
                          library # c_so_name;
                          library # c_a_name] @ (library # cleaned)
-                  
+
             | `doc | `top -> []
-                  
-    method vars = 
+
+    method vars =
         (source_vars library) @ (byte_vars library) @ (opt_vars library) @ (findlib_vars library) @
         (if library # has_c_sources then self # c_vars else [])
-        
+
     method rules =
         (match library # has_c_sources, library # shared with
              | false, _ -> [cma_rule; cmxa_rule]
@@ -1635,17 +1633,17 @@ end
 
 
 (* * * Makefile Variables * * *)
-    
+
 (* Really snappy wrappers *)
-let library ?(sources = []) ?(libs = []) ?findlibs ?shared ?dest name = 
+let library ?(sources = []) ?(libs = []) ?findlibs ?shared ?dest name =
     Package.library
         ~sources:(Sources.of_list sources)
         ~libs:(Libs.of_list libs)
-        ?findlibs 
-        ?shared 
-        ?dest 
+        ?findlibs
+        ?shared
+        ?dest
         name
-    
+
 let executable ?(sources = []) ?(libs = []) ?findlibs ?dest name =
     Package.executable
         ~sources:(Sources.of_list sources)
@@ -1653,13 +1651,13 @@ let executable ?(sources = []) ?(libs = []) ?findlibs ?dest name =
         ?findlibs
         ?dest
         name
-    
-let script ?dest name = 
+
+let script ?dest name =
     Package.script
-        ?dest 
+        ?dest
         name
-    
-let toplevel ?(sources = []) ?(libs = []) ?findlibs ?dest name = 
+
+let toplevel ?(sources = []) ?(libs = []) ?findlibs ?dest name =
     Package.toplevel
         ~sources:(Sources.of_list sources)
         ~libs:(Libs.of_list libs)
@@ -1705,12 +1703,12 @@ object(self)
             | `dep ->
 		          (Sources.all package.sources)
                   @
-		          (List.flatten (List.map 
-                                     (fun x -> (x # globals `dep)) 
+		          (List.flatten (List.map
+                                     (fun x -> (x # globals `dep))
                                      sub_builders))
 
             | _ -> failwith "global builder does not answer globals queries other than `dep"
-                       
+
     method vars =
         let cmdlinetool_vars cmdline =
             List.map
@@ -1732,19 +1730,19 @@ object(self)
                                                       (fun builder -> builder # globals `findlib)
                                                       sub_builders)
         in
-        
+
         [
-            
+
 	        (* installation info *)
 	        "PACKAGE", package.package;
             "FINDLIB_PACKAGE", package.findlib_package;
             "DESTDIR", package.destdir;
-	        "PREFIX", package.prefix; 
+	        "PREFIX", package.prefix;
 
             (* These are shorthand *)
             "PREFIX_DESTDIR", "$(DESTDIR)$(PREFIX)";
 	        "FINDLIB_FILES", join (package.findlib_installed_files @ product_findlib_files);
-            
+
 	        (* file info *)
 	        "SOURCES", join (Sources.get package.sources [`ml; `mli; `mly; `mll; `c]);
 	        "OBJECTS", join (Sources.get package.sources [`cmo]);
@@ -1753,13 +1751,13 @@ object(self)
 	        "O_OBJECTS", join (Sources.get package.sources [`o]);
 	        "LIBS", join package.libs.Libs.cma;
 	        "OPT_LIBS", join package.libs.Libs.cmxa;
-	        
-            "FINDLIBS", 
-            if package.findlibs = [] 
-            then "" 
+
+            "FINDLIBS",
+            if package.findlibs = []
+            then ""
             else sprintf "-package '%s'" (join package.findlibs);
-	        
-            "INCLUDES", 
+
+            "INCLUDES",
             if package.includes <> [] then "-I " ^ (join ~delim:" -I " package.includes) else "";
 
 	        (* variables so I don't have to type so much *)
@@ -1769,15 +1767,15 @@ object(self)
 	        "LINK_OPT", "ocamlfind ocamlopt -linkpkg $(FINDLIBS) $(OCAMLOPT_FLAGS) $(INCLUDES) $(OPT_LIBS)";
 	        "MKTOP", "ocamlfind ocamlmktop -linkpkg $(FINDLIBS) $(OCAMLMKTOP_FLAGS) $(INCLUDES) $(LIBS)";
             "DOC", "ocamlfind ocamldoc $(FINDLIBS) $(INCLUDES)";
-            
+
             (* ocamlmklib isn't sufficiently cross-platform *)
 	        "LINKLIB", "ocamlfind ocamlc -linkpkg $(FINDLIBS) -a $(OCAMLC_FLAGS) $(INCLUDES) $(LIBS)";
 	        "LINKLIB_OPT", "ocamlfind ocamlopt $(FINDLIBS) -a $(OCAMLOPT_FLAGS) $(INCLUDES)";
-            "LINKLIB_SHARED", "gcc -shared $(CFLAGS)";
+            "LINKLIB_SHARED", "gcc -shared -fPIC $(CFLAGS)";
             "LINKLIB_STATIC", "ar rc";
 	        "YACC", "ocamlyacc $(OCAMLYACC_FLAGS) $(INCLUDES)";
 	        "LEX", "ocamllex $(OCAMLLEX_FLAGS) $(INCLUDES)";
-	    ]   
+	    ]
         @
         (cmdlinetool_vars package.command_line)
         @
@@ -1787,24 +1785,24 @@ object(self)
         let distrib_rule label target flag extension =
 		    let filename = Printf.sprintf "%s.tar%s" label extension in
             let exclusions =
-                (String.concat " " 
-                     (List.map (fun s -> sprintf "--exclude='%s'" s) 
-                          [ "*~"; 
+                (String.concat " "
+                     (List.map (fun s -> sprintf "--exclude='%s'" s)
+                          [ "*~";
                             "CVS";
-                            "_darcs"; 
+                            "_darcs";
                             ".arch*";
                             "*/" ^ label;
                             filename ]))
             in
 		    let tarflags = exclusions ^ " " ^ flag in
-		    
-		    (target, 
-             "", 
+
+		    (target,
+             "",
 		     Printf.sprintf "$(MAKE) distclean && ln -s . %s && tar %s -chvf %s %s && rm %s"
 			     label tarflags filename label label)
         in
 	    let label = package.package ^ "-" ^ package.version in
-	    
+
 	    List.map
             (fun (target, flag, extension) -> distrib_rule label target flag extension)
 		    [
@@ -1812,55 +1810,55 @@ object(self)
                 ("bzip2", "-j", ".bz2");
                 ("tar", "", "")
             ]
-    
+
     method append_ocamldep outchannel =
 	    let all_sources = self # globals `dep in
-        
-	    let inchannel = Unix.open_process_in 
+
+	    let inchannel = Unix.open_process_in
 		                    (sprintf "ocamldep %s %s"
-                                 
-			                     (if package.includes <> [] 
-                                  then "-I " ^ (join ~delim:" -I " package.includes) 
+
+			                     (if package.includes <> []
+                                  then "-I " ^ (join ~delim:" -I " package.includes)
                                   else "")
-                                 
+
 			                     (join all_sources))
-                            
+
 	    in
         (try
 	         while true do
                  fprintf outchannel "%s\n" (input_line inchannel)
 	         done
          with End_of_file -> ());
-        
+
 	    close_in inchannel
 
 
-            
+
 
     method rules =
         let lexer_rule file = (new_ext file ".ml"), file, "" in
-        
+
         (* TODO: make the Makefile depend on the .mly and .mll files, so it'll be
            re-created when they change - and then run yacc and lex at configure time *)
-        let parser_rules file = 
+        let parser_rules file =
             [
 	            (new_ext file ".cmo"), (new_ext file ".cmi"), "";
 	            (new_ext file ".cmx"), (new_ext file ".cmi"), ""
-            ] 
+            ]
         in
-        
+
         let precompile_rules sources =
 	        (List.map lexer_rule (Sources.get sources [`mll]))
             @
 	        (List.flatten (List.map parser_rules (Sources.get sources [`mly])))
         in
-        
-        let get_all_globals global_tag = 
-            join (List.flatten (List.map 
-                                    (fun builder -> builder # globals global_tag) 
+
+        let get_all_globals global_tag =
+            join (List.flatten (List.map
+                                    (fun builder -> builder # globals global_tag)
                                     sub_builders))
         in
-        
+
         (List.map (fun (name, tag) -> name, get_all_globals tag, "")
              [
 		         ("all", `all);
@@ -1870,19 +1868,19 @@ object(self)
              ])
         @
         [
-            ("install", 
+            ("install",
              "install-findlib " ^ (get_all_globals `install),
              "");
-            
+
             ("uninstall", "uninstall-findlib " ^ (get_all_globals `uninstall), "");
             ("reinstall", "uninstall", "$(MAKE) install");
             ("install-opt", get_all_globals `install_opt, "");
-		    ("clean", "", "rm -rf $(OBJECTS) $(INTERFACES) $(O_OBJECTS) $(OPT_OBJECTS) " 
-                 ^ (get_all_globals `clean) 
+		    ("clean", "", "rm -rf $(OBJECTS) $(INTERFACES) $(O_OBJECTS) $(OPT_OBJECTS) "
+                 ^ (get_all_globals `clean)
                  ^ " " ^ (join package.cleaned)
             );
 		    ("distclean", "", "$(MAKE) clean && rm -f Makefile");
-            
+
             if (get_all_globals `findlib) = "" then
                 ("install-findlib", "", "")
             else
@@ -1902,11 +1900,11 @@ object(self)
         (precompile_rules package.sources)
         @
         (self # distrib_rules)
-        
-            
+
+
 end
 
-let package 
+let package
     ?(package = "my_program")
 	?(version = "0.0")
     ?(destdir = "")
@@ -1927,35 +1925,35 @@ let package
         ~sources:(Sources.of_list sources)
         ~libs:(Libs.of_list libs)
         ~command_line:(CmdLineTools.map_of_list flags)
-        ~package 
-        ~version 
-        ~destdir 
-        ~prefix 
-        ~findlibs 
+        ~package
+        ~version
+        ~destdir
+        ~prefix
+        ~findlibs
         ~includes
-        ~findlib_package 
-        ~findlib_installed_files 
-        ~findlib_installs_opt 
+        ~findlib_package
+        ~findlib_installed_files
+        ~findlib_installs_opt
         ~cleaned
         ~debug
         products
-    
+
 let output_makefile ?(filename = "Makefile") package =
-	
+
 	(* * * Makefile * * *)
 	let channel = if package.debug then stdout else open_out filename in
-    
+
     let p = new global_builder package in
 
-	Makefile.render 
-        ~channel 
+	Makefile.render
+        ~channel
         p # vars
         p # rules;
-	
+
     p # append_ocamldep channel;
-    
+
 	if not package.debug then close_out channel
-        
+
 
 let	output
 	?package:pack
@@ -1970,35 +1968,35 @@ let	output
 	?findlib_installed_files
 	?findlib_installs_opt
 	?flags
-    ?cleaned 
+    ?cleaned
 	?debug
 	targets
     =
-    
+
     output_makefile (package
                          ?sources ?libs ?flags ?package:pack ?version ?destdir ?prefix ?findlibs ?includes
                          ?findlib_package ?findlib_installed_files ?findlib_installs_opt ?cleaned ?debug
                          targets)
-        
+
 let output_ebuild ?filename package = ()
 let output_meta ?(filename = "META") package = ()
 let output_omakefile ?(filename = "OMakeFile") package = ()
 
 
-        
+
 
 (***************************************************************************************)
 end
 module Conf : sig
-(*                                                     
+(*
   This file is part of ocamlconf - An O'Caml build tool
   Copyright (C) 2003 Kenneth Knowles
-  
+
   ocamlconf is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 2 of the License, or
   (at your option) any later version.
-  
+
   ocamlconf is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -2010,9 +2008,9 @@ module Conf : sig
 *)
 
 
-(* 
+(*
 	This should look a lot like an arg_spec from Arg.
-	The types I can think of autoconf using are String, 
+	The types I can think of autoconf using are String,
 	StringList of <separator>, Toggle
 
 	Each entry is (<flag>, <kind>, <defaultvalue>, <description>)
@@ -2036,7 +2034,7 @@ module Conf : sig
 
 *)
 
-(** 
+(**
     A module for build-time configuration.
 
     Things it can do at build time:
@@ -2088,7 +2086,7 @@ val standard_spec : (configuration_item * bool) list
 *)
 val findlib_check : ?min:string -> ?max:string -> string -> configuration_item
 
-(** 
+(**
     [path_search name doc paths] performs a rudimentary search through the list of
     paths.  This provides a method for locating libraries that don't have any
     other way to be found.
@@ -2102,7 +2100,7 @@ val path_search : ?doc:string -> string -> string list -> configuration_item
 *)
 val param : ?doc:string -> string -> value -> configuration_item
 
-(** 
+(**
     [custom f] allows you to have a totally custom configuration function that takes in the
     configuration so far, and returns a possibly modified configuration.  You only need to use this
     if other configuration items depend on the results, otherwise you can just program you custom
@@ -2113,7 +2111,7 @@ val custom : (t -> t) -> configuration_item
 
 (** {4 Configuration Function} *)
 
-(** 
+(**
     Takes a [configuration_item list], supplemented with a bool to
     say whether to show each item to the user, and returns the
     configuration that results from all the tests are command-line
@@ -2151,12 +2149,12 @@ end
 (*
   This file is part of ocamlconf - An O'Caml build tool
   Copyright (C) 2003 Kenneth Knowles
-  
+
   ocamlconf is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 2 of the License, or
   (at your option) any later version.
-  
+
   ocamlconf is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -2168,9 +2166,9 @@ end
 *)
 
 
-(* 
+(*
 	This should look a lot like an arg_spec from Arg.
-	The types I can think of autoconf using are String, 
+	The types I can think of autoconf using are String,
 	StringList of <separator>, Toggle
 
 	Each entry is (<flag>, <kind>, <defaultvalue>, <description>)
@@ -2222,7 +2220,7 @@ let path_search ?(doc = "") name paths =
 let param ?(doc = "") name value =
     Param (name, value, doc)
 
-let custom f = 
+let custom f =
     Custom f
 
 exception Incorrect_type of string
@@ -2233,8 +2231,8 @@ let standard_spec = [
 				"ocaml_path"
 				(String (Util.shell_capture "ocamlfind ocamlc -where"))
 				conf), false;
-    
-	Param ("prefix", 
+
+	Param ("prefix",
 		   String "/usr/local",
 		   "The installation prefix, for items not installed via findlib."),	true;
 ]
@@ -2261,7 +2259,7 @@ module Versions = struct
 	let possibly_compare ~actual ~desired =
 		match desired with
 		| None -> 0
-		| Some v -> 
+		| Some v ->
 			let reg = Str.regexp "\\." in
 			compare (Str.split reg actual) (Str.split reg v)
 end
@@ -2270,7 +2268,7 @@ module OcamlFind = struct
 
 	let query formatstring key =
 		Util.shell_capture (sprintf "ocamlfind query -format \"%s\" %s" formatstring key)
-	
+
 	let version = query "%v"
 	let path = query "%d"
 end
@@ -2350,12 +2348,12 @@ let argspec_of_conf_item config_ref (conf_item, show_to_user) =
 		match conf_item with
 		| Param (key, oldval, doc) -> [
 				"--" ^ key,
-				Arg.String (fun x -> config_ref := StringMap.add 
-														key 
+				Arg.String (fun x -> config_ref := StringMap.add
+														key
 														(new_param_value oldval x)
 														!config_ref),
 				doc
-			]	
+			]
 
 		| Path (key, doc, _) -> [
 				"--" ^ key ^ "-path",
@@ -2366,7 +2364,7 @@ let argspec_of_conf_item config_ref (conf_item, show_to_user) =
 		| _ -> []
 	else
 		[]
-	
+
 let add_default map (item, _) =
 	match item with
 	| Param (key, default, _) -> StringMap.add key default map
@@ -2376,7 +2374,7 @@ let add_default map (item, _) =
 let configure conf_items =
 
 	(* Create a configuration full of the default values for params *)
-	let config_ref = ref (List.fold_left 
+	let config_ref = ref (List.fold_left
 							add_default
 							StringMap.empty
 							conf_items)
@@ -2386,7 +2384,7 @@ let configure conf_items =
 		(List.flatten (List.map (argspec_of_conf_item config_ref) conf_items))
 		(fun s -> Printf.eprintf "[WARNING] Ignoring anonymous argument '%s'\n%!" s)
 		"./configure [options ...]";
-	
+
 
 	try
 		dispatch_conf_items !config_ref conf_items
@@ -2450,10 +2448,10 @@ let rec summarize_config_rec ?(so_far = "") conf conf_items =
 			match conf_item with
 			| FindLib (key, _, _) ->
 				(sprintf "%s path: %s\n" key (conf_string conf (key ^ "_path"))) ^
-				(sprintf "%s version: %s\n" key (conf_string conf (key ^ "_version")))		
+				(sprintf "%s version: %s\n" key (conf_string conf (key ^ "_version")))
 
 			| Path (key, doc, _) ->
-				(sprintf "%s path: %s\n" key (conf_string conf (key ^ "_path")))	
+				(sprintf "%s path: %s\n" key (conf_string conf (key ^ "_path")))
 
 			| Param (key, value, doc) ->
 				sprintf "%s: %s\n" key
@@ -2480,12 +2478,14 @@ open Printf;;
 open Util;;
 
 let spec =
-	(standard_spec @
-	[
-		param	"freetds-libdir" (String "") ~doc:"Path to the freetds library.", true;
-        param   "freetds-incdir" (String "") ~doc:"Path to the freetds include files.", true;
-		findlib_check "str", true;
-	])
+  (standard_spec @
+     [
+       param "freetds-libdir" (String "")
+         ~doc:"Path to the freetds library.", true;
+       param   "freetds-incdir" (String "")
+         ~doc:"Path to the freetds include files.", true;
+       findlib_check "str", true;
+     ])
 ;;
 
 let configuration = configure spec
@@ -2507,16 +2507,16 @@ let c_incflag = match conf_string configuration "freetds-incdir" with "" -> "" |
 let libflag = "" (*match conf_string configuration "freetds-libdir" with "" -> "" | s -> "-L " ^ s*)
 let incflag = "" (*match conf_string configuration "freetds-incdir" with "" -> "" | s -> "-I " ^ s*)
 
-let ml_libflag = match conf_string configuration "freetds-libdir" with 
-    "" -> "" 
+let ml_libflag = match conf_string configuration "freetds-libdir" with
+    "" -> ""
     | s -> sprintf "-dllpath %s -ccopt -L%s" s s
 
 let freetds_top = toplevel "freetds.top" ~dest:`nowhere ~sources
 let freetds_cma = library "freetds" ~dest:`findlib ~shared:true ~sources
 let freetds_doc = documentation "docs" ~sources
-	
+
 (* The makefile generation information *)
-let _ = output 
+let _ = output
 	~package:"ocaml-freetds"
 
     ~findlib_package:"freetds"
