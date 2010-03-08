@@ -5,7 +5,7 @@ include Makefile.conf
 .PHONY: default all opt byte native install uninstall htdoc doc examples tests
 OCAML_ALL = byte $(filter-out byte, @OCAMLBEST@)
 default: $(OCAML_ALL)
-all: byte native tests
+all: byte native
 opt: native
 htdoc: doc
 byte native install uninstall doc:
@@ -48,8 +48,8 @@ clean:
 	$(RM) $(wildcard *~ *.pdf *.ps *.png *.svg *.tex *.log) cairo.godiva
 	$(RM) -rf aclocal.m4 auto/ autom4te.cache/ config.status
 	$(MAKE) -C src $@
-	$(MAKE) -C tests $@
-	$(MAKE) -C examples $@
+#	$(MAKE) -C tests $@
+#	$(MAKE) -C examples $@
 #	$(MAKE) -C doc $@
 
 dist-clean::

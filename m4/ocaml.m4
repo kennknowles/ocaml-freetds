@@ -219,7 +219,7 @@ AC_DEFUN([AC_CHECK_OCAML_WORD_SIZE],
   AC_MSG_CHECKING([for OCaml compiler word size])
   cat > conftest.ml <<EOF
   print_endline (string_of_int Sys.word_size)
-  EOF
+EOF
   OCAML_WORD_SIZE=`$OCAML conftest.ml`
   AC_MSG_RESULT([$OCAML_WORD_SIZE])
   AC_SUBST([OCAML_WORD_SIZE])

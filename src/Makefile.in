@@ -13,7 +13,8 @@ DOC_DIR = $(ROOT)/doc/html/
 # Native code versions must be installed if and only if make opt was
 # called previously (i.e. the files exist):
 INSTALL_FILES = $(DOC_FILES) \
-	$(wildcard $(addprefix freetds, .cmi .cma .cmx .a .cmxa))
+	$(wildcard $(addprefix freetds, .cmi .cma .cmx .a .cmxa)) \
+	dllfreetds_stubs.so libfreetds_stubs.a
 
 .PHONY: default all opt byte native
 default: @OCAMLBEST@
@@ -36,7 +37,7 @@ freetds.cma: freetds.cmo $(STUBS:.c=.o)
 	$(OCAMLMKLIB) -ocamlc $(OCAMLC) -o freetds -oc freetds_stubs \
 	$^ $(LIBS)
 
-freetds.cmxa: freetds.cmx $(STUBS:.c=.o)
+freetds.cmxa dllfreetds_stubs.so: freetds.cmx $(STUBS:.c=.o)
 	$(OCAMLMKLIB) -ocamlopt $(OCAMLOPT) -o freetds -oc freetds_stubs \
 	$^ $(LIBS)
 
@@ -55,6 +56,9 @@ uninstall:
 	ocamlfind remove $(PACKAGE)
 
 include $(ROOT)/Makefile.ocaml
+
+clean::
+	$(RM) $(wildcard *.so)
 
 dist-clean::
 	$(RM) META Makefile
