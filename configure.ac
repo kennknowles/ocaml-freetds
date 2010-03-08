@@ -15,6 +15,8 @@ if test "$OCAMLFIND" = "no"; then
   AC_MSG_ERROR([You must install OCaml findlib (the ocamlfind command)])
 fi
 
+AC_CHECK_OCAML_WORD_SIZE
+
 DESTDIR=`$OCAMLFIND printconf destdir | sed -e 's|\\\\|/|g'`
 AC_SUBST(DESTDIR)
 

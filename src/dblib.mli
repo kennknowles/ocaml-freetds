@@ -92,3 +92,26 @@ val string_of_col_type : col_type -> string
 
 external coltype : dbprocess -> int -> col_type = "ocaml_freetds_dbcoltype"
   (** Get the datatype of a regular result set column.  *)
+
+type data =
+  | NULL
+  | STRING of string
+  | TINY of int
+  | SMALL of int
+  | INT of int
+  | FLOAT of float
+  | DATETIME
+  | MONEY of float
+  | BIT of bool
+  | BINARY of string
+  | NUMERIC
+  | DECIMAL
+
+type bound_columns
+
+external bind : dbprocess -> bound_columns = "ocaml_freetds_dbbind"
+    (** Allocate a datastructure to retrieve the data of each row. *)
+
+external nextrow : bound_columns -> data list = "ocaml_freetds_dbnextrow"
+    (** Retrieve the next row.
+        @raise Not_found if no more ros are available. *)

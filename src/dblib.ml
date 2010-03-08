@@ -82,22 +82,23 @@ external coltype : dbprocess -> int -> col_type = "ocaml_freetds_dbcoltype"
 
 (* See /usr/include/sybdb.h, CHARBIND ... *)
 type data =
-  | STRING of string
+  | NULL
+  | STRING of string                    (* tag = 0 *)
   | TINY of int
   | SMALL of int
   | INT of int
-  | FLOAT of float
-  | DATETIME
-  | SMALLDATETIME
-  | MONEY
-  | BINARY of string
+  | INT32 of int32
+  | INT64 of string (* FIXME: do better *)
+  | FLOAT of float                      (* tag = 6 *)
+  | DATETIME of string (* FIXME: do better *)
+  | MONEY of float
   | BIT of bool
-  | NUMERIC
-  | DECIMAL
+  | BINARY of string                    (* tag = 10 *)
+  | NUMERIC of string (* FIXME: do better *)
+  | DECIMAL of string (* FIXME: do better *)
 
 type bound_columns
 
 external bind : dbprocess -> bound_columns = "ocaml_freetds_dbbind"
-
 
 external nextrow : bound_columns -> data list = "ocaml_freetds_dbnextrow"
