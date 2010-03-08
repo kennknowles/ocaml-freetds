@@ -32,41 +32,20 @@ void mltds_ct_cmd_finalize(value cmd);
 void mltds_binding_buffer_finalize(value buf);
 
 /* Definitions of custom structs */
-struct custom_operations context_operations = {
-    "freetds/ct/cs_context",
-    mltds_ct_ctx_finalize,
-    custom_compare_default,
-    custom_hash_default,
-    custom_serialize_default,
-    custom_deserialize_default
+#define DEFINE_CUSTOM_OPERATIONS(name, finalize)                \
+  static struct custom_operations name##_operations = {         \
+    "freetds/ct/cs_" #name,                                     \
+    finalize,                                                   \
+    custom_compare_default,                                     \
+    custom_hash_default,                                        \
+    custom_serialize_default,                                   \
+    custom_deserialize_default                                  \
 };
 
-struct custom_operations connection_operations = {
-    "freetds/ct/cs_connection",
-    mltds_ct_con_finalize,
-    custom_compare_default,
-    custom_hash_default,
-    custom_serialize_default,
-    custom_deserialize_default
-};
-
-struct custom_operations command_operations = {
-    "freetds/ct/cs_command",
-    mltds_ct_cmd_finalize,
-    custom_compare_default,
-    custom_hash_default,
-    custom_serialize_default,
-    custom_deserialize_default
-};
-
-struct custom_operations binding_buffer_ops = {
-    "freetds/ct/binding_buffer",
-    mltds_binding_buffer_finalize,
-    custom_compare_default,
-    custom_hash_default,
-    custom_serialize_default,
-    custom_deserialize_default
-};
+DEFINE_CUSTOM_OPERATIONS(context, mltds_ct_ctx_finalize)
+DEFINE_CUSTOM_OPERATIONS(connection, mltds_ct_con_finalize)
+DEFINE_CUSTOM_OPERATIONS(command, mltds_ct_cmd_finalize)
+DEFINE_CUSTOM_OPERATIONS(binding_buffer, mltds_binding_buffer_finalize)
 
 #define BUFFER_CONTENTS(buff,cast_to) (*(cast_to*)(buff->data))
 
@@ -408,7 +387,8 @@ value column_of_buffer(struct binding_buffer* buf)
     CAMLparam0 ();
     CAMLlocal2(result, buffer);
     
-    buffer = alloc_custom(&binding_buffer_ops, sizeof(struct binding_buffer*), 0, 1);
+    buffer = alloc_custom(&binding_buffer_operations,
+                          sizeof(struct binding_buffer*), 0, 1);
     buffer_ptr(buffer) = buf;
 
     result = alloc(COL_SIZE, 0);
