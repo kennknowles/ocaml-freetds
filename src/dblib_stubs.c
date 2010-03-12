@@ -21,6 +21,7 @@
 #include <sybfront.h> /* sqlfront.h always comes first */
 #include <sybdb.h>
 #include <string.h>
+#include <stdio.h>
 
 #include <caml/mlvalues.h>
 #include <caml/alloc.h>
@@ -234,7 +235,7 @@ value ocaml_freetds_dbnextrow(value vdbproc)
   
 /* Taken from the implementation of caml_copy_string */
 #define COPY_STRING(res, s, len_bytes)           \
-  res = caml_alloc_string(len);                  \
+  res = caml_alloc_string(len_bytes);                  \
   memmove(String_val(res), s, len_bytes);
 
 #define CONVERT_STRING(destlen)                                         \
@@ -246,7 +247,7 @@ value ocaml_freetds_dbnextrow(value vdbproc)
     failwith("Freetds.nextrow: problem with copying strings. "          \
              "Please contact the author of the Freetds bindings.");      \
   } else {                                                              \
-    COPY_STRING(vdata, data, converted_len);                            \
+    COPY_STRING(vdata, data_char, converted_len);                            \
     free(data_char);                                                    \
   }
 
@@ -317,11 +318,11 @@ value ocaml_freetds_dbnextrow(value vdbproc)
 
         case SYBNUMERIC:
           CONVERT_STRING(2.5 * len); /* FIXME: max size ? */
-          CONSTRUCTOR(5, vdata);
+          CONSTRUCTOR(11, vdata);
           break;
         case SYBDECIMAL:
           CONVERT_STRING(2.5 * len); /* FIXME: max size ? */
-          CONSTRUCTOR(5, vdata);
+          CONSTRUCTOR(12, vdata);
           break;
 
         case SYBBIT:
@@ -366,6 +367,10 @@ value ocaml_freetds_dbnextrow(value vdbproc)
                     (BYTE*) &data_double, sizeof(double));
           CONSTRUCTOR(8, caml_copy_double(data_double));
           break;
+
+        default:
+          printf("Freetds.Dblib.nextrow: dbcoltype not handled (C stub)\n");
+          exit(1);
         }
       }
       /* Place the data in front of the list [vrow]. */
