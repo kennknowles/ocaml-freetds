@@ -25,8 +25,8 @@ type dbprocess
   (** Value that contains all information needed by [Freetds.Dblib] to
       manage communications with the server.  *)
 
-external connect : user:string -> passwd:string -> server:string -> dbprocess
-  = "ocaml_freetds_dbopen"
+external connect : user:string option -> password:string option
+  -> server:string -> dbprocess  = "ocaml_freetds_dbopen"
     (** Open a connection to the given database server.
         @raise Failure if the connection to the database could not be
         established. *)

@@ -25,8 +25,8 @@ let () = dbinit()
 
 type dbprocess
 
-external connect : user:string -> passwd:string -> server:string -> dbprocess
-  = "ocaml_freetds_dbopen"
+external connect : user:string option -> password:string option
+  -> server:string -> dbprocess = "ocaml_freetds_dbopen"
 
 external close : dbprocess -> unit = "ocaml_freetds_dbclose"
 

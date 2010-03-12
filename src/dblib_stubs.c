@@ -81,8 +81,10 @@ value ocaml_freetds_dbopen(value vuser, value vpasswd, value vserver)
   if ((login = dblogin()) == NULL) {
     failwith("FreeTDS.Dblib.dbopen: cannot allocate the login structure");
   }
-  DBSETLUSER(login, String_val(vuser));
-  DBSETLPWD(login, String_val(vpasswd));
+  if (Is_block(vuser)) /* <> None */
+    DBSETLUSER(login, String_val(Field(vuser, 0)));
+  if (Is_block(vpasswd)) /* <> None */
+    DBSETLPWD(login, String_val(Field(vpasswd, 0)));
   if ((dbproc = dbopen(login, String_val(vserver))) == NULL) {
     /* free login ? */
     failwith("FreeTDS.Dblib.dbopen: unable to connect to the database");
