@@ -15,6 +15,7 @@
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
    LICENSE for more details. *)
 
+open Printf
 
 external dbinit : unit -> unit = "ocaml_freetds_dbinit"
 
@@ -98,6 +99,24 @@ type data =
   | BINARY of string                    (* tag = 10 *)
   | NUMERIC of string (* FIXME: do better *)
   | DECIMAL of string (* FIXME: do better *)
+
+let string_of_data = function
+  | NULL -> "NULL"
+  | STRING s -> sprintf "STRING(%S)" s
+  | TINY i -> sprintf "TINY(%i)" i
+  | SMALL i -> sprintf "SMALL(%i)" i
+  | INT i -> sprintf "INT(%i)" i
+  | INT32 i -> sprintf "INT32(%li)" i
+  | INT64 i -> sprintf "INT64(%s)" i
+  | FLOAT f -> sprintf "FLOAT(%f)" f
+  | DATETIME(y, mo, day, h, m, s, _, _) ->
+      sprintf "DATETIME(%i/%i/%i %i:%02i:%02i)" y mo day h m s
+  | MONEY f -> sprintf "MONEY(%f)" f
+  | BIT b -> sprintf "BIT(%b)" b
+  | BINARY s -> sprintf "BINARY(%S)" s
+  | NUMERIC s -> sprintf "NUMERIC(%S)" s
+  | DECIMAL s -> sprintf "DECIMAL(%S)" s
+
 
 external nextrow : dbprocess -> data list = "ocaml_freetds_dbnextrow"
 

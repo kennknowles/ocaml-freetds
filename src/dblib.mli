@@ -116,6 +116,8 @@ type data =
   | NUMERIC of string
   | DECIMAL of string
 
+val string_of_data : data -> string
+
 external nextrow : dbprocess -> data list = "ocaml_freetds_dbnextrow"
     (** Retrieve the next row.
         @raise Not_found if no more ros are available. *)
