@@ -317,11 +317,11 @@ value ocaml_freetds_dbnextrow(value vdbproc)
           break;
 
         case SYBNUMERIC:
-          CONVERT_STRING(2.5 * len); /* FIXME: max size ? */
+          CONVERT_STRING(ceil(2.5 * len)); /* FIXME: max size ? */
           CONSTRUCTOR(11, vdata);
           break;
         case SYBDECIMAL:
-          CONVERT_STRING(2.5 * len); /* FIXME: max size ? */
+          CONVERT_STRING(ceil(2.5 * len)); /* FIXME: max size ? */
           CONSTRUCTOR(12, vdata);
           break;
 
