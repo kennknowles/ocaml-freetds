@@ -2,13 +2,12 @@ ROOT=.
 VERSION = "@PACKAGE_VERSION@"
 include Makefile.conf
 
-.PHONY: default all opt byte native install uninstall htdoc doc examples tests
+.PHONY: all opt byte native install uninstall update htdoc doc examples tests
 OCAML_ALL = byte $(filter-out byte, @OCAMLBEST@)
-default: $(OCAML_ALL)
-all: byte native
+all: byte $(OCAML_ALL)
 opt: native
 htdoc: doc
-byte native install uninstall doc:
+byte native install uninstall update doc:
 	$(MAKE) -C src $@
 examples tests: default
 	$(MAKE) -C $@ $(OCAML_ALL)

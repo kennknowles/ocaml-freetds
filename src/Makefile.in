@@ -47,13 +47,15 @@ doc:
 	if [ ! -d "$(DOC_DIR)" ]; then mkdir -p $(DOC_DIR); fi
 	$(OCAMLDOC) -html -d $(DOC_DIR) $(OCAMLDOC_FLAGS) $(DOC_FILES)
 
-.PHONY: install uninstall
+.PHONY: install uninstall update
 # TODO: copy HTML doc
 install: META $(INSTALL_FILES)
 	ocamlfind install $(PACKAGE) $^
-
 uninstall:
 	ocamlfind remove $(PACKAGE)
+update:
+	$(MAKE) uninstall
+	$(MAKE) install
 
 include $(ROOT)/Makefile.ocaml
 
