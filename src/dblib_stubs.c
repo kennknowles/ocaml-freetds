@@ -30,7 +30,7 @@
 #include <caml/custom.h>
 
 
-value ocaml_freetds_dbinit(value unit)
+CAMLexport value ocaml_freetds_dbinit(value unit)
 {
   CAMLparam0();
   if (dbinit() == FAIL) {
@@ -95,14 +95,14 @@ value ocaml_freetds_dbopen(value vuser, value vpasswd, value vserver)
   CAMLreturn(vdbproc);
 }
 
-value ocaml_freetds_dbclose(value vdbproc)
+CAMLexport value ocaml_freetds_dbclose(value vdbproc)
 {
   CAMLparam1(vdbproc);
   dbclose(DBPROCESS_VAL(vdbproc));
   CAMLreturn(Val_unit);
 }
 
-value ocaml_freetds_dbuse(value vdbproc, value vdbname)
+CAMLexport value ocaml_freetds_dbuse(value vdbproc, value vdbname)
 {
   CAMLparam2(vdbproc, vdbname);
   if (dbuse(DBPROCESS_VAL(vdbproc), String_val(vdbname)) == FAIL) {
@@ -111,7 +111,7 @@ value ocaml_freetds_dbuse(value vdbproc, value vdbname)
   CAMLreturn(Val_unit);
 }
 
-value ocaml_freetds_dbname(value vdbproc)
+CAMLexport value ocaml_freetds_dbname(value vdbproc)
 {
   CAMLparam1(vdbproc);
   CAMLlocal1(vname);
@@ -127,7 +127,7 @@ value ocaml_freetds_dbname(value vdbproc)
 /* Executing SQL queries
 **********************************************************************/
 
-value ocaml_freetds_dbsqlexec(value vdbproc, value vsql)
+CAMLexport value ocaml_freetds_dbsqlexec(value vdbproc, value vsql)
 {
   CAMLparam2(vdbproc, vsql);
 
@@ -143,7 +143,7 @@ value ocaml_freetds_dbsqlexec(value vdbproc, value vsql)
   CAMLreturn(Val_unit);
 }
 
-value ocaml_freetds_dbresults(value vdbproc)
+CAMLexport value ocaml_freetds_dbresults(value vdbproc)
 {
   CAMLparam1(vdbproc);
   RETCODE erc;
@@ -154,13 +154,13 @@ value ocaml_freetds_dbresults(value vdbproc)
   CAMLreturn(Val_bool(erc == SUCCEED));
 }
 
-value ocaml_freetds_numcols(value vdbproc)
+CAMLexport value ocaml_freetds_numcols(value vdbproc)
 {
   /* noalloc */
   return(Val_int(dbnumcols(DBPROCESS_VAL(vdbproc))));
 }
 
-value ocaml_freetds_dbcolname(value vdbproc, value vc)
+CAMLexport value ocaml_freetds_dbcolname(value vdbproc, value vc)
 {
   CAMLparam2(vdbproc, vc);
   CAMLlocal1(vname);
@@ -173,7 +173,7 @@ value ocaml_freetds_dbcolname(value vdbproc, value vc)
   CAMLreturn(vname);
 }
 
-value ocaml_freetds_dbcoltype(value vdbproc, value vc)
+CAMLexport value ocaml_freetds_dbcoltype(value vdbproc, value vc)
 {
   CAMLparam2(vdbproc, vc);
   /* Keep in sync with "type col_type" on the Caml side. */
@@ -205,14 +205,14 @@ value ocaml_freetds_dbcoltype(value vdbproc, value vc)
   failwith("Freetds.Dblib.coltype: unknown column type");
 }
 
-value ocaml_freetds_dbcancel(value vdbproc)
+CAMLexport value ocaml_freetds_dbcancel(value vdbproc)
 {
   CAMLparam1(vdbproc);
   dbcancel(DBPROCESS_VAL(vdbproc));
   CAMLreturn(Val_unit);
 }
 
-value ocaml_freetds_dbcanquery(value vdbproc)
+CAMLexport value ocaml_freetds_dbcanquery(value vdbproc)
 {
   CAMLparam1(vdbproc);
   dbcanquery(DBPROCESS_VAL(vdbproc));
@@ -220,7 +220,7 @@ value ocaml_freetds_dbcanquery(value vdbproc)
 }
 
 
-value ocaml_freetds_dbnextrow(value vdbproc)
+CAMLexport value ocaml_freetds_dbnextrow(value vdbproc)
 {
   CAMLparam1(vdbproc);
   CAMLlocal4(vrow, vdata, vconstructor, vcons);
@@ -402,7 +402,7 @@ value ocaml_freetds_dbnextrow(value vdbproc)
 }
 
 
-value ocaml_freetds_dbcount(value vdbproc)
+CAMLexport value ocaml_freetds_dbcount(value vdbproc)
 {
   CAMLparam1(vdbproc);
   CAMLreturn(Val_int(DBPROCESS_VAL(vdbproc)));
