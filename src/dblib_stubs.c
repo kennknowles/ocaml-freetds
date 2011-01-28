@@ -137,8 +137,9 @@ CAMLexport value ocaml_freetds_dbsqlexec(value vdbproc, value vsql)
   }
   /* Sending the query to the server resets the command buffer. */
   if (dbsqlexec(DBPROCESS_VAL(vdbproc)) == FAIL) {
-    failwith("FreeTDS.Dblib.sqlexec: the SQL query is invalid, the results "
-             "of the previous query were not completely read,...");
+    failwith("FreeTDS.Dblib.sqlexec: the SQL query is invalid. It may be due "
+             "to a SQL syntax error, incorrect column or table names, "
+             "of if the previous query results were not completely read,...");
   }
   CAMLreturn(Val_unit);
 }
