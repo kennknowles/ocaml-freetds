@@ -25,26 +25,26 @@ type dbprocess
   (** Value that contains all information needed by [Freetds.Dblib] to
       manage communications with the server.  *)
 
-external connect : user:string option -> password:string option
-  -> server:string -> dbprocess  = "ocaml_freetds_dbopen"
+val connect : user:string option -> password:string option
+  -> server:string -> dbprocess
     (** Open a connection to the given database server.
         @raise Failure if the connection to the database could not be
         established. *)
 
-external close : dbprocess -> unit = "ocaml_freetds_dbclose"
+val close : dbprocess -> unit
     (** [dbclose conn] close the connection [conn] to the server. *)
 
-external use : dbprocess -> string -> unit = "ocaml_freetds_dbuse"
+val use : dbprocess -> string -> unit
     (** [dbuse conn name] change the current database to [name].
         @raise Failure if the database cannot be used. *)
 
-external name : dbprocess -> string = "ocaml_freetds_dbname"
+val name : dbprocess -> string
     (** [name conn] returns the name of the current database. *)
 
 (************************************************************************)
 (** {2 Executing SQL queries and getting the results} *)
 
-external sqlexec : dbprocess -> string -> unit = "ocaml_freetds_dbsqlexec"
+val sqlexec : dbprocess -> string -> unit
   (** Send the SQL command to the server and wait for an answer.
       @raise Failure if the SQL query is incorrect or another problem
       occurs.
@@ -55,14 +55,14 @@ external sqlexec : dbprocess -> string -> unit = "ocaml_freetds_dbsqlexec"
       application must either fetch all rows, or cancel the results and
       receive an acknowledgement from the server. *)
 
-external cancel :  dbprocess -> unit = "ocaml_freetds_dbcancel"
+val cancel :  dbprocess -> unit
     (** Cancel the current command batch.  *)
 
-external canquery :  dbprocess -> unit = "ocaml_freetds_dbcanquery"
+val canquery :  dbprocess -> unit
     (** Cancel the query currently being retrieved, (retriving and)
         discarding all pending rows. *)
 
-external results : dbprocess -> bool = "ocaml_freetds_dbresults"
+val results : dbprocess -> bool
     (** [results conn] returns [true] if some results are available
         and [false] if the query produced no results.  There may be
         several results if COMPUTE clauses are used.
@@ -71,10 +71,10 @@ external results : dbprocess -> bool = "ocaml_freetds_dbresults"
         @raise Failure if the query was not processed successfully by the
         server. *)
 
-external numcols : dbprocess -> int = "ocaml_freetds_numcols" "noalloc"
+val numcols : dbprocess -> int
     (** Return number of regular columns in a result set.  *)
 
-external colname : dbprocess -> int -> string = "ocaml_freetds_dbcolname"
+val colname : dbprocess -> int -> string
     (** [colname conn c] returns the name of a regular result
         column [c].  The first column has number 1.
         @raise Invalid_argument if the column is not in range.  *)
@@ -96,7 +96,7 @@ type col_type =
 val string_of_col_type : col_type -> string
   (** Returns a string description of the column type. *)
 
-external coltype : dbprocess -> int -> col_type = "ocaml_freetds_dbcoltype"
+val coltype : dbprocess -> int -> col_type
   (** Get the datatype of a regular result set column.  *)
 
 type data =
@@ -118,11 +118,11 @@ type data =
 
 val string_of_data : data -> string
 
-external nextrow : dbprocess -> data list = "ocaml_freetds_dbnextrow"
+val nextrow : dbprocess -> data list
     (** Retrieve the next row.
         @raise Not_found if no more ros are available. *)
 
-external count : dbprocess -> int = "ocaml_freetds_dbcount"
+val count : dbprocess -> int
     (** Get count of rows processed.
         - for insert/update/delete, count of rows affected.
         - for select, count of rows returned, after all rows have been
