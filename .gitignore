@@ -1,6 +1,8 @@
 #							-*-conf-unix-*-
 *.cm[ioax]
 *.cmxa
+*.[oa]
+*.so
 *.annot
 *.exe
 *.com
