@@ -5,7 +5,7 @@ include $(ROOT)/Makefile.conf
 CPPFLAGS = @CPPFLAGS@
 LDFLAGS = @LDFLAGS@
 LIBS = @LIBS@
-CFLAGS = -Wall -fPIC -DOCAML_WORD_SIZE=@OCAML_WORD_SIZE@
+CFLAGS = -Wall -fPIC -DOCAML_WORD_SIZE=@OCAML_WORD_SIZE@ -I'@OCAMLLIB@'
 
 DOC_FILES = ct.mli dblib.mli
 DOC_DIR = $(ROOT)/doc/html/

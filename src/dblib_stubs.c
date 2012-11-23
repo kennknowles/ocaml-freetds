@@ -22,6 +22,7 @@
 #include <sybdb.h>
 #include <string.h>
 #include <stdio.h>
+#include <math.h>
 
 #include <caml/mlvalues.h>
 #include <caml/alloc.h>
