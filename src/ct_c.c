@@ -217,7 +217,8 @@ value value_of_severity(CS_INT severity)
     case CS_SV_RESOURCE_FAIL:  CAMLreturn(hash_variant("Resource_fail"));
     case CS_SV_COMM_FAIL:      CAMLreturn(hash_variant("Comm_fail"));
     case CS_SV_INTERNAL_FAIL:  CAMLreturn(hash_variant("Internal_fail"));
-    case CS_SV_FATAL:          CAMLreturn(hash_variant("Fatal"));
+    /* CS_SV_FATAL */
+    default:          CAMLreturn(hash_variant("Fatal"));
     }
 }
 
