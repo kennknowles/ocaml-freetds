@@ -24,5 +24,5 @@ sudo apt-get install -qq ocaml-findlib
 #opam install "${OPAM_PACKAGES}"
 
 # Install freetds
-sudo apt-get install freetds
+sudo apt-get install freetds-dev
 
