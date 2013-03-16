@@ -16,3 +16,4 @@ Makefile.ocaml
 config.log
 config.status
 src/META
+*.tar.gz
