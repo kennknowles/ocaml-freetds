@@ -1,6 +1,6 @@
 #							-*- makefile-gmake -*-
 ROOT=..
-include $(ROOT)/Makefile.conf
+PACKAGE_NAME = "@PACKAGE_NAME@"
 
 CPPFLAGS = @CPPFLAGS@
 LDFLAGS = @LDFLAGS@
@@ -50,9 +50,9 @@ doc:
 .PHONY: install uninstall update
 # TODO: copy HTML doc
 install: META $(INSTALL_FILES)
-	ocamlfind install $(PACKAGE) $^
+	ocamlfind install $(PACKAGE_NAME) $^
 uninstall:
-	ocamlfind remove $(PACKAGE)
+	ocamlfind remove $(PACKAGE_NAME)
 update:
 	$(MAKE) uninstall
 	$(MAKE) install
