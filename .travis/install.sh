@@ -9,17 +9,17 @@ sudo apt-get update -qq
 sudo apt-get install -qq ocaml
 
 # Install opam
-echo "deb http://www.recoil.org/~avsm/ wheezy main" >> /etc/apt/sources.list
-apt-get update
-apt-get install opam
+echo "deb http://www.recoil.org/~avsm/ wheezy main" | sudo tee -a /etc/apt/sources.list
+sudo apt-get update
+sudo apt-get install opam
 
 opam init --auto-setup
 eval `opam config -env`
 popd
 
-# Install freetds
-sudo apt-get install freetds
-
 # Install any ocaml packages
 opam install "${OPAM_PACKAGES}"
+
+# Install freetds
+sudo apt-get install freetds
 
