@@ -47,8 +47,8 @@ web tutorial: doc examples
 
 .PHONY: clean distclean dist-clean
 clean:
-	$(RM) $(wildcard *~ *.pdf *.ps *.png *.svg *.tex *.log) cairo.godiva
-	$(RM) -rf aclocal.m4 auto/ autom4te.cache/ config.status
+	$(RM) $(wildcard *~ *.pdf *.ps *.png *.svg *.tex *.log *.tar.gz)
+	$(RM) -rf cairo.godiva aclocal.m4 auto/ autom4te.cache/ config.status
 	$(MAKE) -C src $@
 #	$(MAKE) -C tests $@
 #	$(MAKE) -C examples $@
