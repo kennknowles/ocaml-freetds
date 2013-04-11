@@ -120,7 +120,7 @@ val string_of_data : data -> string
 
 val nextrow : dbprocess -> data list
     (** Retrieve the next row.
-        @raise Not_found if no more ros are available. *)
+        @raise Not_found if no more rows are available. *)
 
 val count : dbprocess -> int
     (** Get count of rows processed.
