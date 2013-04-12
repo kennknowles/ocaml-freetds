@@ -30,6 +30,22 @@
 #include <caml/fail.h>
 #include <caml/custom.h>
 
+/* http://manuals.sybase.com/onlinebooks/group-cnarc/cng1110e/dblib/@Generic__BookTextView/16561;pt=39614 */
+static int err_handler(DBPROCESS *dbproc, int severity,
+                       int dberr, int oserr,
+                       char *dberrstr, char *oserrstr)
+{
+  if ((dbproc == NULL) || (DBDEAD(dbproc)))
+    failwith("FreeTDS.Dblib: the database connection failed");
+
+  if (oserr != DBNOERR) {
+    failwith(oserrstr);
+  }
+  failwith(dberrstr);
+
+  return(INT_CANCEL); /* should never return */
+}
+
 
 CAMLexport value ocaml_freetds_dbinit(value unit)
 {
@@ -37,10 +53,12 @@ CAMLexport value ocaml_freetds_dbinit(value unit)
   if (dbinit() == FAIL) {
     failwith("FreeTDS.Dblib: cannot initialize DB-lib!");
   }
+  /* Install a error handler using exceptions, the default error
+   * handler aborts the program under some circumstances. */
+  dberrhandle(&err_handler);
   CAMLreturn(Val_unit);
 }
 
-/* dberrhandle(err_handler); */
 /* dbmsghandle(msg_handler); */
 
 
