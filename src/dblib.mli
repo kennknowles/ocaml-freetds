@@ -21,6 +21,9 @@
     right order.  Use OCamlDBI with the freetds driver for an easier
     interaction with such databases. *)
 
+exception Error of string
+(** [Error(message)] is raised on dblib errors. *)
+
 type dbprocess
   (** Value that contains all information needed by [Freetds.Dblib] to
       manage communications with the server.  *)
@@ -28,7 +31,7 @@ type dbprocess
 val connect : user:string option -> password:string option
   -> server:string -> dbprocess
     (** Open a connection to the given database server.
-        @raise Failure if the connection to the database could not be
+        @raise Dblib.Error if the connection to the database could not be
         established. *)
 
 val close : dbprocess -> unit
@@ -36,7 +39,7 @@ val close : dbprocess -> unit
 
 val use : dbprocess -> string -> unit
     (** [dbuse conn name] change the current database to [name].
-        @raise Failure if the database cannot be used. *)
+        @raise Dblib.Error if the database cannot be used. *)
 
 val name : dbprocess -> string
     (** [name conn] returns the name of the current database. *)
@@ -46,7 +49,7 @@ val name : dbprocess -> string
 
 val sqlexec : dbprocess -> string -> unit
   (** Send the SQL command to the server and wait for an answer.
-      @raise Failure if the SQL query is incorrect or another problem
+      @raise Dblib.Error if the SQL query is incorrect or another problem
       occurs.
 
       {b Warning}: There is one absolutely crucial, inflexible, unalterable
@@ -68,7 +71,7 @@ val results : dbprocess -> bool
         several results if COMPUTE clauses are used.
         One MUST CALL this function before trying to retrieve any rows.
 
-        @raise Failure if the query was not processed successfully by the
+        @raise Dblib.Error if the query was not processed successfully by the
         server. *)
 
 val numcols : dbprocess -> int

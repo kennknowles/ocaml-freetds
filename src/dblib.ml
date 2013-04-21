@@ -17,6 +17,11 @@
 
 open Printf
 
+exception Error of string
+
+let () =
+  Callback.register_exception "Freetds.Dblib.Error" (Error "")
+
 external dbinit : unit -> unit = "ocaml_freetds_dbinit"
 
 let () = dbinit()
