@@ -20,6 +20,7 @@
 
 #include <sybfront.h> /* sqlfront.h always comes first */
 #include <sybdb.h>
+#include <syberror.h>
 #include <string.h>
 #include <stdio.h>
 #include <math.h>
@@ -28,6 +29,7 @@
 #include <caml/alloc.h>
 #include <caml/memory.h>
 #include <caml/fail.h>
+#include <caml/callback.h>
 #include <caml/custom.h>
 
 static void raise_error(char *msg)
@@ -43,12 +45,13 @@ static void raise_error(char *msg)
 
 
 /* http://manuals.sybase.com/onlinebooks/group-cnarc/cng1110e/dblib/@Generic__BookTextView/16561;pt=39614 */
-static int err_handler(DBPROCESS *dbproc, int severity,
-                       int dberr, int oserr,
+static int err_handler(DBPROCESS *dbproc, int severity, /* in syberror.h */
+                       int dberr, /* in sybdb.h */
+                       int oserr,
                        char *dberrstr, char *oserrstr)
 {
   if ((dbproc == NULL) || (DBDEAD(dbproc)))
-    raise_error("The database connection failed");
+    raise_error("The database connection failed (unusable handle)");
 
   if (oserr != DBNOERR) {
     raise_error(oserrstr);
