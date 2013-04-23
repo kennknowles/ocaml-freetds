@@ -17,9 +17,13 @@
 
 open Printf
 
+exception Error of string
+
 external dbinit : unit -> unit = "ocaml_freetds_dbinit"
 
-let () = dbinit()
+let () =
+  Callback.register_exception "Freetds.Dblib.Error" (Error "message");
+  dbinit()
   (* One must call this function before trying to use db-lib in any
      way.  Allocates various internal structures and reads
      locales.conf (if any) to determine the default date format.  *)
