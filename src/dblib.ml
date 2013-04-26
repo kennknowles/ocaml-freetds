@@ -146,3 +146,5 @@ let string_of_data = function
 external nextrow : dbprocess -> data list = "ocaml_freetds_dbnextrow"
 
 external count : dbprocess -> int = "ocaml_freetds_dbcount"
+
+external settime : int -> unit = "ocaml_freetds_dbsettime"

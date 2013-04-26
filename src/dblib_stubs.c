@@ -95,6 +95,8 @@ static int err_handler(DBPROCESS *dbproc, int severity, /* in syberror.h */
   }
   vmsg = caml_copy_string(dberrstr);
   caml_callback3(*handler, args[0] /* severity */, Val_int(dberr), vmsg);
+  /* FIXME: allow the handler to return whether to continue trying on
+     timeouts?  Separate handler for timeouts?? */
 
   CAMLreturn(INT_CANCEL); /* should not return */
 }
@@ -459,11 +461,12 @@ CAMLexport value ocaml_freetds_dbnextrow(value vdbproc)
     break;
 
   case FAIL:
-    raise_fatal("nextrow"); /* the handler should be triggered instead */
+    /* The handler should be triggered (this should not occur). */
+    raise_fatal("Freetds.Dblib.nextrow");
     break;
 
   case BUF_FULL:
-    raise_fatal("nextrow: buffer full (report to the developer "
+    raise_fatal("Freetds.Dblib.nextrow: buffer full (report to the developer "
                 "of this library)");
     break;
 
@@ -478,4 +481,15 @@ CAMLexport value ocaml_freetds_dbcount(value vdbproc)
 {
   CAMLparam1(vdbproc);
   CAMLreturn(Val_int(DBPROCESS_VAL(vdbproc)));
+}
+
+
+CAMLexport value ocaml_freetds_dbsettime(value vseconds)
+{
+  CAMLparam1(vseconds);
+  /* http://manuals.sybase.com/onlinebooks/group-cnarc/cng1110e/dblib/@ebt-link;pt=16561?target=%25N%15_39241_START_RESTART_N%25 */
+  if (dbsettime(Int_val(vseconds)) == FAIL) {
+    raise_fatal("Freetds.Dblib.settime");
+  }
+  CAMLreturn(Val_unit);
 }

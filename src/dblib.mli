@@ -161,4 +161,10 @@ val err_handler : (severity -> int -> string -> unit) -> unit
     is given the {!severity}, the number of the error (see the 400 or
     so error numbers sybdb.h, macros SYBE...) and the message. *)
 
+val settime : int -> unit
+(** [settime seconds] Set the number of seconds that DB-Library will
+    wait for a server response to a SQL command.  If not response is
+    obtained within that period, raise [Error(TIME, _)]. *)
+
+
 ;;
