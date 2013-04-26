@@ -91,7 +91,7 @@ static int err_handler(DBPROCESS *dbproc, int severity, /* in syberror.h */
 
   if (handler == NULL) {
     /* First time around, look up by name */
-    handler = caml_named_value("Freetds.Dblib.Freetds.Dblib.err_handler");
+    handler = caml_named_value("Freetds.Dblib.err_handler");
   }
   vmsg = caml_copy_string(dberrstr);
   caml_callback3(*handler, args[0] /* severity */, Val_int(dberr), vmsg);
