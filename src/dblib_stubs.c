@@ -146,9 +146,13 @@ static struct custom_operations dbprocess_ops = {
 };
 
 
-value ocaml_freetds_dbopen(value vuser, value vpasswd, value vserver)
+CAMLexport
+value ocaml_freetds_dbopen(value vuser, value vpasswd, value vchar_set,
+                           value vlanguage, value vapplication,
+                           value vserver)
 {
-  CAMLparam3(vuser, vpasswd, vserver);
+  CAMLparam5(vuser, vpasswd, vapplication, vchar_set, vlanguage);
+  CAMLxparam1(vserver);
   CAMLlocal1(vdbproc);
   LOGINREC *login;
   DBPROCESS *dbproc;
@@ -160,6 +164,13 @@ value ocaml_freetds_dbopen(value vuser, value vpasswd, value vserver)
     DBSETLUSER(login, String_val(Field(vuser, 0)));
   if (Is_block(vpasswd)) /* <> None */
     DBSETLPWD(login, String_val(Field(vpasswd, 0)));
+  if (Is_block(vchar_set))
+    DBSETLCHARSET(login, String_val(Field(vchar_set, 0)));
+  if (Is_block(vlanguage))
+    DBSETLNATLANG(login, String_val(Field(vlanguage, 0)));
+  if (Is_block(vapplication)) /* <> None */
+    DBSETLAPP(login, String_val(Field(vapplication, 0)));
+
   dbproc = dbopen(login, String_val(vserver));
   dbloginfree(login); /* dbopen made => [login] no longer needed. */
   if (dbproc == NULL) {
@@ -169,6 +180,13 @@ value ocaml_freetds_dbopen(value vuser, value vpasswd, value vserver)
   DBPROCESS_VAL(vdbproc) = dbproc;
   CAMLreturn(vdbproc);
 }
+
+CAMLexport value ocaml_freetds_dbopen_bc(value * argv, int argn)
+{
+  return ocaml_freetds_dbopen(
+    argv[0], argv[1], argv[2], argv[3], argv[4], argv[5]);
+}
+
 
 CAMLexport value ocaml_freetds_dbclose(value vdbproc)
 {

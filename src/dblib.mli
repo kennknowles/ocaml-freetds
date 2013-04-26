@@ -28,9 +28,30 @@ type dbprocess
   (** Value that contains all information needed by [Freetds.Dblib] to
       manage communications with the server.  *)
 
-val connect : user:string option -> password:string option
-              -> server:string -> dbprocess
-(** Open a connection to the given database server.
+val connect : ?user:string -> ?password:string ->
+              ?charset:string -> ?language:string -> ?application: string ->
+              string -> dbprocess
+(** [connect server]: open a connection to the given database server.
+
+    @param charset The name of the character set the client will use.
+    Default values include "iso_1" for ISO-8859-1 (most platforms),
+    "cp850" for Code Page 850 (IBM RS/6000), and "roman8" for the
+    Roman8 character set (HP platforms).  Note that, if the chosen
+    charset is not completely compatible with the one of the database,
+    [Error(CONVERSION, msg)] will be raised with [msg] being something
+    like "Some character(s) could not be converted into client’s
+    character set. Unconverted bytes were changed to question marks
+    (‘?’)".  Set an {!err_handler} to tread these errors differently.
+
+    @param application If given, the server uses this name in its
+    sysprocesses table to help identify your process. If you set the
+    application name, you will see it if you query the sysprocesses
+    table in the master database.
+
+    @param language The name of the national language to use.  If
+    language support is installed in the server, error messages are
+    returned in the designated national language.  Set this only if
+    you do not wish to use the server's default national language.
 
     @raise Dblib.Error if the connection to the database could not be
     established.  Note that if [server] cannot be converted to an IP

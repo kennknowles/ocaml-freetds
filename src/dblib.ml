@@ -51,8 +51,14 @@ let () =
 
 type dbprocess
 
-external connect : user:string option -> password:string option
-  -> server:string -> dbprocess = "ocaml_freetds_dbopen"
+external dbopen :
+  user:string option -> password:string option ->
+  charset: string option -> language: string option -> application:string option
+  -> server:string -> dbprocess
+  = "ocaml_freetds_dbopen_bc" "ocaml_freetds_dbopen"
+
+let connect ?user ?password ?charset ?language ?application server =
+  dbopen ?user ?password ?charset ?language ?application ~server
 
 external close : dbprocess -> unit = "ocaml_freetds_dbclose"
 
