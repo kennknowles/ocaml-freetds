@@ -17,12 +17,33 @@
 
 open Printf
 
-exception Error of string
+type severity =
+  | INFO
+  | USER
+  | NONFATAL
+  | CONVERSION
+  | SERVER
+  | TIME
+  | PROGRAM
+  | RESOURCE
+  | COMM
+  | FATAL
+  | CONSISTENCY
+
+exception Error of severity * string
+
+let err_handler (f: severity -> int -> string -> unit) =
+  Callback.register "Freetds.Dblib.err_handler" f
+
+let default_err_handler severity _err msg =
+  raise(Error(severity, msg))
 
 external dbinit : unit -> unit = "ocaml_freetds_dbinit"
 
 let () =
-  Callback.register_exception "Freetds.Dblib.Error" (Error "message");
+  Callback.register_exception "Freetds.Dblib.Error"
+                              (Error(FATAL, "message"));
+  err_handler default_err_handler;
   dbinit()
   (* One must call this function before trying to use db-lib in any
      way.  Allocates various internal structures and reads

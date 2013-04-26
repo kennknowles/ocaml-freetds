@@ -32,33 +32,71 @@
 #include <caml/callback.h>
 #include <caml/custom.h>
 
-static void raise_error(char *msg)
+static void raise_fatal(char *msg)
 {
+  CAMLparam0();
+  CAMLlocal1(vmsg);
+  value args[2];
   static value *exn = NULL;
   if (exn == NULL) {
-    /* First time around, look up by name */    
+    /* First time around, look up by name */
     exn = caml_named_value("Freetds.Dblib.Error");
   }
-  
-  caml_raise_with_string(*exn, msg);
+
+  args[0] = Val_int(9); /* FATAL (on OCaml side) */
+  vmsg = caml_copy_string(msg);
+  args[1] = vmsg;
+  caml_raise_with_args(*exn, 2, args);
+  CAMLreturn0;
 }
 
 
 /* http://manuals.sybase.com/onlinebooks/group-cnarc/cng1110e/dblib/@Generic__BookTextView/16561;pt=39614 */
 static int err_handler(DBPROCESS *dbproc, int severity, /* in syberror.h */
-                       int dberr, /* in sybdb.h */
-                       int oserr,
+                       int dberr, /* in sybdb.h, SYBE* macros */
+                       int oserr, /* in sybdb.h */
                        char *dberrstr, char *oserrstr)
 {
-  if ((dbproc == NULL) || (DBDEAD(dbproc)))
-    raise_error("The database connection failed (unusable handle)");
+  CAMLparam0();
+  CAMLlocal1(vmsg);
+  static value *handler = NULL;
+  value args[2];
+  static value *exn = NULL;
 
-  if (oserr != DBNOERR) {
-    raise_error(oserrstr);
+  if (exn == NULL) {
+    /* First time around, look up by name */
+    exn = caml_named_value("Freetds.Dblib.Error");
   }
-  raise_error(dberrstr);
+  /* Keep in sync with dblib.ml */
+  severity -= EXINFO;
+  if (severity >= 11) /* number of constructors on the OCaml side */
+    severity = 9;
+  args[0] = Val_int(severity);
 
-  return(INT_CANCEL); /* should never return */
+#define RAISE(msg)                              \
+  vmsg = caml_copy_string(msg);                 \
+  args[1] = vmsg;                               \
+  caml_raise_with_args(*exn, 2, args);
+  
+  if ((dbproc == NULL) || (DBDEAD(dbproc))) {
+    /* Always raise an exception when the DB handle is unusable. */
+    RAISE(dberrstr);
+  }
+  if (oserr != DBNOERR && oserr != 0 /* Undefined error */) {
+    RAISE(oserrstr);
+  }
+  if (dberr == SYBESMSG) {
+    RAISE("Check messages from the SQL Server");
+  }
+
+  if (handler == NULL) {
+    /* First time around, look up by name */
+    handler = caml_named_value("Freetds.Dblib.Freetds.Dblib.err_handler");
+  }
+  vmsg = caml_copy_string(dberrstr);
+  caml_callback3(*handler, args[0] /* severity */, Val_int(dberr), vmsg);
+
+  CAMLreturn(INT_CANCEL); /* should not return */
 }
 
 
@@ -66,7 +104,7 @@ CAMLexport value ocaml_freetds_dbinit(value unit)
 {
   CAMLparam0();
   if (dbinit() == FAIL) {
-    raise_error("cannot initialize DB-lib!");
+    raise_fatal("Cannot initialize DB-lib!");
   }
   /* Install a error handler using exceptions, the default error
    * handler aborts the program under some circumstances. */
@@ -114,7 +152,7 @@ value ocaml_freetds_dbopen(value vuser, value vpasswd, value vserver)
   DBPROCESS *dbproc;
 
   if ((login = dblogin()) == NULL) {
-    raise_error("dbopen: cannot allocate the login structure");
+    raise_fatal("dbopen: cannot allocate the login structure");
   }
   if (Is_block(vuser)) /* <> None */
     DBSETLUSER(login, String_val(Field(vuser, 0)));
@@ -122,7 +160,7 @@ value ocaml_freetds_dbopen(value vuser, value vpasswd, value vserver)
     DBSETLPWD(login, String_val(Field(vpasswd, 0)));
   if ((dbproc = dbopen(login, String_val(vserver))) == NULL) {
     /* free login ? */
-    raise_error("dbopen: unable to connect to the database");
+    raise_fatal("dbopen: unable to connect to the database");
   }
   vdbproc = DBPROCESS_ALLOC();
   DBPROCESS_VAL(vdbproc) = dbproc;
@@ -140,7 +178,7 @@ CAMLexport value ocaml_freetds_dbuse(value vdbproc, value vdbname)
 {
   CAMLparam2(vdbproc, vdbname);
   if (dbuse(DBPROCESS_VAL(vdbproc), String_val(vdbname)) == FAIL) {
-    raise_error("dbuse: unable to use the given database");
+    raise_fatal("dbuse: unable to use the given database");
   }
   CAMLreturn(Val_unit);
 }
@@ -150,7 +188,7 @@ CAMLexport value ocaml_freetds_dbname(value vdbproc)
   CAMLparam1(vdbproc);
   CAMLlocal1(vname);
   char *name;
-  
+
   name = dbname(DBPROCESS_VAL(vdbproc));
   vname = caml_copy_string(name);
   /* free(name); */ /* generate a segfault */
@@ -166,11 +204,11 @@ CAMLexport value ocaml_freetds_dbsqlexec(value vdbproc, value vsql)
   CAMLparam2(vdbproc, vsql);
 
   if (dbcmd(DBPROCESS_VAL(vdbproc), String_val(vsql)) == FAIL) {
-    raise_error("dbsqlexec: cannot allocate memory to hold the SQL query");
+    raise_fatal("dbsqlexec: cannot allocate memory to hold the SQL query");
   }
   /* Sending the query to the server resets the command buffer. */
   if (dbsqlexec(DBPROCESS_VAL(vdbproc)) == FAIL) {
-    raise_error("sqlexec: the SQL query is invalid. It may be due "
+    raise_fatal("sqlexec: the SQL query is invalid. It may be due "
                 "to a SQL syntax error, incorrect column or table names, or "
                 "if the previous query results were not completely read,...");
   }
@@ -182,7 +220,7 @@ CAMLexport value ocaml_freetds_dbresults(value vdbproc)
   CAMLparam1(vdbproc);
   RETCODE erc;
   if ((erc = dbresults(DBPROCESS_VAL(vdbproc))) == FAIL) {
-    raise_error("results: query was not processed successfully by the server");
+    raise_fatal("results: query was not processed successfully by the server");
   }
   CAMLreturn(Val_bool(erc == SUCCEED));
 }
@@ -235,7 +273,8 @@ CAMLexport value ocaml_freetds_dbcoltype(value vdbproc, value vc)
   case SYBBINARY: CAMLreturn(Val_int(21));
   case SYBVARBINARY: CAMLreturn(Val_int(22));
   }
-  raise_error("coltype: unknown column type");
+  raise_fatal("coltype: unknown column type"
+              " (contact the author of the OCaml bindings)");
 }
 
 CAMLexport value ocaml_freetds_dbcancel(value vdbproc)
@@ -265,7 +304,7 @@ CAMLexport value ocaml_freetds_dbnextrow(value vdbproc)
   char *data_char;
   double data_double;
   DBDATEREC di;
-  
+
 /* Taken from the implementation of caml_copy_string */
 #define COPY_STRING(res, s, len_bytes)           \
   res = caml_alloc_string(len_bytes);                  \
@@ -277,10 +316,10 @@ CAMLexport value ocaml_freetds_dbnextrow(value vdbproc)
     dbconvert(dbproc, ty, data, len,  SYBCHAR, (BYTE*) data_char, destlen); \
   if (converted_len < 0) {                                              \
     free(data_char);                                                    \
-    raise_error("nextrow: problem with copying strings. "               \
+    raise_fatal("nextrow: problem with copying strings. "               \
                 "Please contact the author of the Freetds bindings.");  \
   } else {                                                              \
-    COPY_STRING(vdata, data_char, converted_len);                            \
+    COPY_STRING(vdata, data_char, converted_len);                       \
     free(data_char);                                                    \
   }
 
@@ -366,7 +405,7 @@ CAMLexport value ocaml_freetds_dbnextrow(value vdbproc)
         case SYBDATETIME4:
         case SYBDATETIMN:
           if (dbdatecrack(dbproc, &di, (DBDATETIME *) data) == FAIL) {
-            raise_error("nextrow: date conversion failed. "
+            raise_fatal("nextrow: date conversion failed. "
                         "Please contact the author of these bindings.");
           }
           vconstructor = caml_alloc(/* size: */ 8, /* tag: */ 7);
@@ -420,11 +459,11 @@ CAMLexport value ocaml_freetds_dbnextrow(value vdbproc)
     break;
 
   case FAIL:
-    raise_error("nextrow");
+    raise_fatal("nextrow"); /* the handler should be triggered instead */
     break;
 
   case BUF_FULL:
-    raise_error("nextrow: buffer full (report to the developer "
+    raise_fatal("nextrow: buffer full (report to the developer "
                 "of this library)");
     break;
 

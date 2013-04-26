@@ -18,21 +18,24 @@
 
 (** Low level binding to the DB-lib part of freetds.  These bindings
     mimic the C API and therefore some functions must be used in the
-    right order.  Use OCamlDBI with the freetds driver for an easier
-    interaction with such databases. *)
-
-exception Error of string
-(** [Error(message)] is raised on dblib errors. *)
+    right order.  Look at the
+    {{:http://freetds.schemamania.org/userguide/}FreeTDS User Guide}
+    and {{:http://sybooks.sybase.com/sybooks/sybooks.xhtml}Sybase
+    documentation} for fine points.  Use OCamlDBI with the freetds
+    driver for an easier interaction with such databases. *)
 
 type dbprocess
   (** Value that contains all information needed by [Freetds.Dblib] to
       manage communications with the server.  *)
 
 val connect : user:string option -> password:string option
-  -> server:string -> dbprocess
-    (** Open a connection to the given database server.
-        @raise Dblib.Error if the connection to the database could not be
-        established. *)
+              -> server:string -> dbprocess
+(** Open a connection to the given database server.
+
+    @raise Dblib.Error if the connection to the database could not be
+    established.  Note that if [server] cannot be converted to an IP
+    address, the error message "Server name not found in configuration
+    files" is returned in {!Error}. *)
 
 val close : dbprocess -> unit
     (** [dbclose conn] close the connection [conn] to the server. *)
@@ -130,3 +133,32 @@ val count : dbprocess -> int
         - for insert/update/delete, count of rows affected.
         - for select, count of rows returned, after all rows have been
           fetched.    *)
+
+(************************************************************************)
+(** {2 Error handling} *)
+
+type severity =
+  | INFO
+  | USER
+  | NONFATAL
+  | CONVERSION
+  | SERVER
+  | TIME
+  | PROGRAM
+  | RESOURCE
+  | COMM
+  | FATAL
+  | CONSISTENCY
+
+exception Error of severity * string
+(** [Error(severity, err, message)] is raised on dblib errors.  You
+    can change the reaction to some errors by installing your own
+    handler with {!err_handler}. *)
+
+val err_handler : (severity -> int -> string -> unit) -> unit
+(** [err_handler f] installs [f] as the default error handler for
+    non-OS related errors and errors not coming from the server.  [f]
+    is given the {!severity}, the number of the error (see the 400 or
+    so error numbers sybdb.h, macros SYBE...) and the message. *)
+
+;;
