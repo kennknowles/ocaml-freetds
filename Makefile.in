@@ -10,15 +10,21 @@ FORGE_DOC=shell.forge.ocamlcore.org:/home/groups/ocaml-freetds/htdocs
 OCAMLFORGE_FILE_NO = 1127
 
 
+SOURCES = $(shell git ls-tree -r --name-only HEAD) \
+  configure aclocal.m4
+
 .PHONY: all opt byte native install uninstall update htdoc doc examples tests
 OCAML_ALL = byte $(filter-out byte, @OCAMLBEST@)
 all: byte $(OCAML_ALL)
 opt: native
 htdoc: doc
-byte native install uninstall update doc:
+byte native install uninstall update doc: configure
 	$(MAKE) -C src $@
-examples tests: default
+examples tests: all
 	$(MAKE) -C $@ $(OCAML_ALL)
+
+configure aclocal.m4: configure.ac
+	./autogen.sh
 
 # Depends on the version number set in delimited_overloading.mli :
 freetds.godiva: freetds.godiva.in
@@ -34,9 +40,11 @@ godi: freetds.godiva
 	godiva $<
 
 .PHONY: tar dist
-tar dist:
-	git archive --prefix=$(PACKAGE_NAME)-$(PACKAGE_VERSION)/ \
-	   --output=$(TARBALL) HEAD
+tar dist: configure aclocal.m4
+	mkdir $(PACKAGE_NAME)-$(PACKAGE_VERSION)/
+	cp -a --parents $(SOURCES) $(PACKAGE_NAME)-$(PACKAGE_VERSION)/
+	tar -zcf $(TARBALL) $(PACKAGE_NAME)-$(PACKAGE_VERSION)/
+	$(RM) -rf $(PACKAGE_NAME)-$(PACKAGE_VERSION)/
 
 .PHONY: web web-html tutorial
 web-html: doc
