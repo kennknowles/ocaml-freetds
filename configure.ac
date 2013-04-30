@@ -1,4 +1,4 @@
-AC_INIT(freetds, 0.5, christophe.troestler@umons.ac.be)
+AC_INIT(freetds, 0.5.1, christophe.troestler@umons.ac.be)
 
 AC_MSG_RESULT([configuring $PACKAGE_STRING])
 
