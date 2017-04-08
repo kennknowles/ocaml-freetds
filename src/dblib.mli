@@ -176,11 +176,19 @@ exception Error of severity * string
     can change the reaction to some errors by installing your own
     handler with {!err_handler}. *)
 
+exception Message of string
+(** [Message(message)] is raised when a message is sent from the server
+    (e.g. malformed SQL). *)
+
 val err_handler : (severity -> int -> string -> unit) -> unit
 (** [err_handler f] installs [f] as the default error handler for
     non-OS related errors and errors not coming from the server.  [f]
     is given the {!severity}, the number of the error (see the 400 or
     so error numbers sybdb.h, macros SYBE...) and the message. *)
+
+val msg_handler : (string -> unit) -> unit
+(** [msg_handler f] installs [f] as the default message handler for
+    messages coming from the server. [f] is given the message. *)
 
 val settime : int -> unit
 (** [settime seconds] Set the number of seconds that DB-Library will

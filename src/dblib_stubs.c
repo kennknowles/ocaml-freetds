@@ -50,6 +50,30 @@ static void raise_fatal(char *msg)
   CAMLreturn0;
 }
 
+static int msg_handler(DBPROCESS *dbproc, DBINT msgno, int msgstate, int severity,
+		       char *msgtext, char *srvname, char *procname, int line)
+{
+  enum {changed_database = 5701, changed_language = 5703 };
+
+  if (msgno == changed_database || msgno == changed_language)
+    return 0;
+
+  CAMLparam0();
+  CAMLlocal1(vmsg);
+  static value *handler = NULL;
+
+  if (handler == NULL) {
+    /* First time around, look up by name */
+    handler = caml_named_value("Freetds.Dblib.msg_handler");
+  }
+
+  /* Ignoring message metadata for now and simply raising with the
+     msgtext, which contains the most helpful information to the user */
+  vmsg = caml_copy_string(msgtext);
+  caml_callback(*handler, vmsg);
+
+  CAMLreturn(INT_CANCEL); /* should not return */
+}
 
 /* http://manuals.sybase.com/onlinebooks/group-cnarc/cng1110e/dblib/@Generic__BookTextView/16561;pt=39614 */
 static int err_handler(DBPROCESS *dbproc, int severity, /* in syberror.h */
@@ -77,7 +101,7 @@ static int err_handler(DBPROCESS *dbproc, int severity, /* in syberror.h */
   vmsg = caml_copy_string(msg);                 \
   args[1] = vmsg;                               \
   caml_raise_with_args(*exn, 2, args);
-  
+
   if ((dbproc == NULL) || (DBDEAD(dbproc))) {
     /* Always raise an exception when the DB handle is unusable. */
     RAISE(dberrstr);
@@ -111,11 +135,9 @@ CAMLexport value ocaml_freetds_dbinit(value unit)
   /* Install a error handler using exceptions, the default error
    * handler aborts the program under some circumstances. */
   dberrhandle(&err_handler);
+  dbmsghandle(&msg_handler);
   CAMLreturn(Val_unit);
 }
-
-/* dbmsghandle(msg_handler); */
-
 
 #define DBPROCESS_VAL(v) (* (DBPROCESS **) Data_custom_val(v))
 #define DBPROCESS_ALLOC()                                       \
