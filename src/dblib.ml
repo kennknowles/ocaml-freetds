@@ -31,6 +31,7 @@ type severity =
   | CONSISTENCY
 
 exception Error of severity * string
+exception Message of string
 
 let err_handler (f: severity -> int -> string -> unit) =
   Callback.register "Freetds.Dblib.err_handler" f
@@ -38,12 +39,18 @@ let err_handler (f: severity -> int -> string -> unit) =
 let default_err_handler severity _err msg =
   raise(Error(severity, msg))
 
+let msg_handler (f: string -> unit) =
+  Callback.register "Freetds.Dblib.msg_handler" f
+
+let default_msg_handler msg = raise(Message(msg))
+
 external dbinit : unit -> unit = "ocaml_freetds_dbinit"
 
 let () =
   Callback.register_exception "Freetds.Dblib.Error"
                               (Error(FATAL, "message"));
   err_handler default_err_handler;
+  msg_handler default_msg_handler;
   dbinit()
   (* One must call this function before trying to use db-lib in any
      way.  Allocates various internal structures and reads
