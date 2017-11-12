@@ -50,6 +50,15 @@ static void raise_fatal(char *msg)
   CAMLreturn0;
 }
 
+static int convert_severity(int severity)
+{
+  /* Keep in sync with dblib.ml */
+  severity -= EXINFO;
+  if (severity >= 11) /* number of constructors on the OCaml side */
+    severity = 9;
+  return severity;
+}
+
 static int msg_handler(DBPROCESS *dbproc, DBINT msgno, int msgstate, int severity,
 		       char *msgtext, char *srvname, char *procname, int line)
 {
@@ -59,7 +68,7 @@ static int msg_handler(DBPROCESS *dbproc, DBINT msgno, int msgstate, int severit
     return 0;
 
   CAMLparam0();
-  CAMLlocal1(vmsg);
+  CAMLlocal3(vseverity, vline, vmsg);
   static value *handler = NULL;
 
   if (handler == NULL) {
@@ -67,10 +76,12 @@ static int msg_handler(DBPROCESS *dbproc, DBINT msgno, int msgstate, int severit
     handler = caml_named_value("Freetds.Dblib.msg_handler");
   }
 
-  /* Ignoring message metadata for now and simply raising with the
-     msgtext, which contains the most helpful information to the user */
+  severity = convert_severity(severity);
+  vseverity = Val_int(severity);
+  vline = Val_int(line);
   vmsg = caml_copy_string(msgtext);
-  caml_callback(*handler, vmsg);
+
+  caml_callback3(*handler, vseverity, vline, vmsg);
 
   CAMLreturn(INT_CANCEL); /* should not return */
 }
@@ -91,10 +102,7 @@ static int err_handler(DBPROCESS *dbproc, int severity, /* in syberror.h */
     /* First time around, look up by name */
     exn = caml_named_value("Freetds.Dblib.Error");
   }
-  /* Keep in sync with dblib.ml */
-  severity -= EXINFO;
-  if (severity >= 11) /* number of constructors on the OCaml side */
-    severity = 9;
+  severity = convert_severity(severity);
   args[0] = Val_int(severity);
 
 #define RAISE(msg)                              \
