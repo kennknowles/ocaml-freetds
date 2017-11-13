@@ -1,5 +1,5 @@
 /*
-  This file is part of ocaml-freetds - An O'Caml binding to the FreeTDS library
+  This file is part of ocaml-freetds - An OCaml binding to the FreeTDS library
   Copyright (C) 2004 Kenneth Knowles
   
   ocaml-freetds is free software; you can redistribute it and/or modify

@@ -5,7 +5,7 @@ https://github.com/kennknowles/ocaml-freetds
 
 [![Build status](https://travis-ci.org/kennknowles/ocaml-freetds.png)](https://travis-ci.org/kennknowles/ocaml-freetds)
 
-An O'Caml binding to the `ct-lib` portion of the `freetds` library, for interfacing with Sybase and Microsoft SQL databases.
+An OCaml binding to the `ct-lib` portion of the `freetds` library, for interfacing with Sybase and Microsoft SQL databases.
 
 
 Feature Summary
