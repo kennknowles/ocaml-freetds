@@ -46,7 +46,8 @@ let default_msg_handler severity line msg =
   | FATAL | CONSISTENCY ->
     let msg = sprintf "Error on line %d: %s" line msg in
     raise(Error(severity, msg))
-  | _ -> ()
+  | INFO | USER | NONFATAL | CONVERSION | SERVER | TIME | PROGRAM
+    | RESOURCE | COMM -> ()
 
 external dbinit : unit -> unit = "ocaml_freetds_dbinit"
 
@@ -69,7 +70,7 @@ external dbopen :
   = "ocaml_freetds_dbopen_bc" "ocaml_freetds_dbopen"
 
 let connect ?user ?password ?charset ?language ?application server =
-  dbopen ?user ?password ?charset ?language ?application ~server
+  dbopen ~user ~password ~charset ~language ~application ~server
 
 external close : dbprocess -> unit = "ocaml_freetds_dbclose"
 
@@ -84,7 +85,7 @@ external canquery :  dbprocess -> unit = "ocaml_freetds_dbcanquery"
 
 external results : dbprocess -> bool = "ocaml_freetds_dbresults"
 
-external numcols : dbprocess -> int = "ocaml_freetds_numcols" "noalloc"
+external numcols : dbprocess -> int = "ocaml_freetds_numcols" [@@noalloc]
     (** Return number of regular columns in a result set.  *)
 
 external colname : dbprocess -> int -> string = "ocaml_freetds_dbcolname"
