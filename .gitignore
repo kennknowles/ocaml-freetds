@@ -17,4 +17,3 @@ config.log
 config.status
 src/META
 *.tar.gz
-freetds.godiva
