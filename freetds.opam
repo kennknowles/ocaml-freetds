@@ -30,9 +30,9 @@ depends: [
   "ocamlfind" {build}
 ]
 depexts: [
-  [["centos"] ["freetds-devel"]]
-  [["debian"] ["freetds-dev"]]
-  [["fedora"] ["freetds-devel"]]
-  [["ubuntu"] ["freetds-dev"]]
-  [["osx" "homebrew"] ["freetds"]]
+  [["centos"] ["autoconf" "automake" "freetds-devel"]]
+  [["debian"] ["autoconf" "automake" "freetds-dev"]]
+  [["fedora"] ["autoconf" "automake" "freetds-devel"]]
+  [["ubuntu"] ["autoconf" "automake" "freetds-dev"]]
+  [["osx" "homebrew"] ["autoconf" "automake" "freetds"]]
 ]
