@@ -2,6 +2,7 @@
 # based on http://blog.mlin.net/2013/02/testing-ocaml-projects-on-travis-ci.html
 # but tried using binary packages from http://opam.ocamlpro.com/doc/Quick_Install.html
 # they seem to be down at the moment and maybe we only need ocaml-findlib that debian does have...
+export OPAM_PACKAGES='jbuilder'
 
 if [ $TRAVIS_OS_NAME = osx ]; then
     brew unlink python
