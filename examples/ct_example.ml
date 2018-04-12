@@ -76,9 +76,7 @@ let _ =
              ignore (results cmd)
          with
              | Cmd_fail
-             | Failure "ct_alloc"
-             | Failure "ct_command"
-             | Failure "ct_send" -> raise_messages conn);
+             | Failure _ -> raise_messages conn);
 
     debug_print (sprintf "Set database to %s\n" !database);
 
