@@ -32,6 +32,8 @@
 #include <caml/callback.h>
 #include <caml/custom.h>
 
+static void raise_fatal(char*) __attribute__ ((noreturn));
+
 static void raise_fatal(char *msg)
 {
   CAMLparam0();
@@ -47,7 +49,6 @@ static void raise_fatal(char *msg)
   vmsg = caml_copy_string(msg);
   args[1] = vmsg;
   caml_raise_with_args(*exn, 2, args);
-  CAMLreturn0;
 }
 
 static int convert_severity(int severity)
