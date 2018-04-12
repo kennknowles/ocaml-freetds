@@ -1,3 +1,15 @@
+addons:
+  apt:
+    sources:
+      - avsm
+    packages:
+      - freetds-dev
+      - ocaml
+      - opam
+sudo: false
 language: c
+os:
+  - linux
+  - osx
 install: bash -ex .travis/install.sh
-script: ./autogen.sh && ./configure && make
+script: eval `opam config env` && ./autogen.sh && ./configure && make
