@@ -533,7 +533,10 @@ CAMLexport value ocaml_freetds_dbnextrow(value vdbproc)
 CAMLexport value ocaml_freetds_dbcount(value vdbproc)
 {
   CAMLparam1(vdbproc);
-  CAMLreturn(Val_int(DBPROCESS_VAL(vdbproc)));
+  CAMLlocal1(vcount);
+  DBPROCESS *dbproc = DBPROCESS_VAL(vdbproc);
+  vcount = dbcount(dbproc);
+  CAMLreturn(Val_int(vcount));
 }
 
 
