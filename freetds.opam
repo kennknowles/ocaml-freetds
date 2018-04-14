@@ -19,6 +19,7 @@ depends: [
 ]
 
 depexts: [
+  [["alpine"] ["freetds-dev"]]
   [["centos"] ["freetds-devel"]]
   [["debian"] ["freetds-dev"]]
   [["fedora"] ["freetds-devel"]]
