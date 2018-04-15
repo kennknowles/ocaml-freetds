@@ -526,7 +526,7 @@ CAMLprim value mltds_ct_res_info(value cmd, value resinfo_type)
 CAMLprim value mltds_ct_bind( value cmd, value maxlen, value index )
 {
     CAMLparam3(cmd, maxlen, index);
-    CS_DATAFMT fmt = {0,0,0,0,0,0,0,0,0,0,0};
+    CS_DATAFMT fmt = {{0,0,0,0,0,0,0,0,0,0,0}};
     struct binding_buffer* buf = malloc(sizeof(struct binding_buffer));
     buf->fmt = fmt;
     

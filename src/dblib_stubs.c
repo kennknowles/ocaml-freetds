@@ -32,6 +32,8 @@
 #include <caml/callback.h>
 #include <caml/custom.h>
 
+static void raise_fatal(char*) __attribute__ ((noreturn));
+
 static void raise_fatal(char *msg)
 {
   CAMLparam0();
@@ -47,7 +49,6 @@ static void raise_fatal(char *msg)
   vmsg = caml_copy_string(msg);
   args[1] = vmsg;
   caml_raise_with_args(*exn, 2, args);
-  CAMLreturn0;
 }
 
 static int convert_severity(int severity)
@@ -532,7 +533,10 @@ CAMLexport value ocaml_freetds_dbnextrow(value vdbproc)
 CAMLexport value ocaml_freetds_dbcount(value vdbproc)
 {
   CAMLparam1(vdbproc);
-  CAMLreturn(Val_int(DBPROCESS_VAL(vdbproc)));
+  CAMLlocal1(vcount);
+  DBPROCESS *dbproc = DBPROCESS_VAL(vdbproc);
+  vcount = dbcount(dbproc);
+  CAMLreturn(Val_int(vcount));
 }
 
 

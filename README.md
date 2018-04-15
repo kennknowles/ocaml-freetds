@@ -34,21 +34,16 @@ Quick Version:
 ```
 $ tar xjvf ocaml-freetds-<version>.tar.bz2
 $ cd ocaml-freetds-<version>
-$ ./configure
 $ make
 $ make install
 ```
 
 Long Version:
 
-1)	`./configure`
-	`./configure --help` will indicate parameters to
-	compilation that you might want to set.
-
-2)	`make`
+1)	`make`
 	This will build ocaml-freetds according to your ./configure instructions.
 
-3)	`make install`
+2)	`make install`
 	You may need to run this as root, or someone with permissions to the findlib's destdir.
 	This should install ocaml-freetds as a findlib package, so you can use
 	'ocamlfind' to build things with it.
@@ -64,7 +59,7 @@ This seems to be the easiest way to get ready on OSX:
 ```
 brew install ocaml
 brew install opam
-opam install ocamlfind
+opam install jbuilder
 ```
 
 

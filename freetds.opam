@@ -11,26 +11,19 @@ tags: [
   "clib:ct"
   "clib:sybdb"
 ]
-build: [
-  [ "./autogen.sh" ]
-  [ "./configure"
-    "--prefix" prefix
-    "--sbindir=%{lib}%/freetds/sbin"
-    "--libexecdir=%{lib}%/freetds/libexec"
-    "--sysconfdir=%{lib}%/freetds/etc"
-    "--sharedstatedir=%{lib}%/freetds/com"
-    "--localstatedir=%{lib}%/freetds/var"
-    "--libdir=%{lib}%/freetds/lib"
-    "--includedir=%{lib}%/freetds/include"
-    "--datarootdir=%{lib}%/freetds/share" ]
-  [ "make" ]
-]
-install: [ "make" "install" ]
-remove: [[ "ocamlfind" "remove" "freetds" ]]
+
+build: ["jbuilder" "build" "-p" name "-j" jobs]
+build-test: ["jbuilder" "runtest" "-p" name "-j" jobs]
+
+available: [ ocaml-version >= "4.02.3" ]
+
 depends: [
-  "ocamlfind" {build}
+  "jbuilder" {build & >= "1.0+beta19.1"}
+  "ounit" {test & >= "2.0.0"}
 ]
+
 depexts: [
+  [["alpine"] ["freetds-dev"]]
   [["centos"] ["freetds-devel"]]
   [["debian"] ["freetds-dev"]]
   [["fedora"] ["freetds-devel"]]

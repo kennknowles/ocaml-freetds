@@ -17,7 +17,7 @@
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-open Ct
+open Freetds.Ct
 open Printf
 
 let server = ref "localhost"
@@ -76,9 +76,7 @@ let _ =
              ignore (results cmd)
          with
              | Cmd_fail
-             | Failure "ct_alloc"
-             | Failure "ct_command"
-             | Failure "ct_send" -> raise_messages conn);
+             | Failure _ -> raise_messages conn);
 
     debug_print (sprintf "Set database to %s\n" !database);
 

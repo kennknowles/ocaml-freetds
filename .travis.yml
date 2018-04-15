@@ -1,3 +1,23 @@
 language: c
-install: bash -ex .travis/install.sh
-script: ./autogen.sh && ./configure && make
+sudo: false
+services:
+  - docker
+install: bash -ex ./.travis/install.sh
+script: bash -ex ./.travis/build.sh
+env:
+  global:
+    - PACKAGE="freetds"
+    - EXTRA_DEPS="ounit"
+matrix:
+  include:
+    - os: linux
+      env: DISTRO="ubuntu-16.04" OCAML_VERSION="4.02.3"
+    - os: linux
+      env: DISTRO="ubuntu-16.04" OCAML_VERSION="4.03.0"
+    - os: linux
+      env: DISTRO="alpine-3.5" OCAML_VERSION="4.04.2"
+    - os: linux
+      env: DISTRO="debian-unstable" OCAML_VERSION="4.05.0"
+    - os: linux
+      env: DISTRO="debian-testing" OCAML_VERSION="4.06.0"
+    - os: osx
