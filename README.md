@@ -1,9 +1,9 @@
+[![Build status](https://travis-ci.org/kennknowles/ocaml-freetds.png)](https://travis-ci.org/kennknowles/ocaml-freetds)
+
 OCaml FreeTDS Binding
 =====================
 
 https://github.com/kennknowles/ocaml-freetds
-
-[![Build status](https://travis-ci.org/kennknowles/ocaml-freetds.png)](https://travis-ci.org/kennknowles/ocaml-freetds)
 
 An OCaml binding to the `ct-lib` portion of the `freetds` library, for interfacing with Sybase and Microsoft SQL databases.
 
@@ -13,6 +13,9 @@ Feature Summary
 
  - Direct binding to the `ct-lib` interface
  - Supports `Dbi_freetds` module included with `ocamldbi` 
+
+See the [online
+documentation](https://kennknowles.github.io/ocaml-freetds/doc).
 
 
 Known Bugs And Limitations
@@ -29,6 +32,10 @@ Known Bugs And Limitations
 Installation
 ------------
 
+The easier way is to use opam:
+
+    opam install freetds
+
 Quick Version:
 
 ```
@@ -41,16 +48,14 @@ $ make install
 Long Version:
 
 1)	`make`
-	This will build ocaml-freetds according to your ./configure instructions.
+	This will build ocaml-freetds.  This requires FreeTDS development
+	packages to be installed, see the `depexts` section in
+	[freetds.opam](freetds.opam).
 
 2)	`make install`
 	You may need to run this as root, or someone with permissions to the findlib's destdir.
 	This should install ocaml-freetds as a findlib package, so you can use
 	'ocamlfind' to build things with it.
-
-Other things to build:
-
- - You can also build a toplevel with "make freetds.top"
 
 ## Special OSX Instructions
 
@@ -67,15 +72,15 @@ Examples
 --------
 
 In the examples subdirectory is a simple SQL dispatcher script written against
-the Ct module, and also one for the Dbi_freetds module.
+the `Ct` module, and also one for the `Dbi_freetds` module.
 
 
 Contributors
 ------------
 
- - [Kenn Knowles](https://github.com/kennknowles) ([@KennKnowles](http://twitter.com/KennKnowles))
- - [Christophe Troestler](https://github.com/Chris00)
-
+- [Kenn Knowles](https://github.com/kennknowles) ([@KennKnowles](http://twitter.com/KennKnowles))
+- [Christophe Troestler](https://github.com/Chris00)
+- [Brendan Long](https://github.com/brendanlong)
 
 License
 -------
