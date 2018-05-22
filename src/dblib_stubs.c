@@ -389,8 +389,16 @@ CAMLexport value ocaml_freetds_dbnextrow(value vdbproc)
       data = dbdata(dbproc, c); /* pointer to the data, no copy! */
       len = dbdatlen(dbproc, c); /* length, in bytes, of the data for
                                     a column. */
-      if (len == 0 || data == NULL) {
-        vconstructor = Val_int(0); /* constant constructor NULL */
+      if (len == -1) {
+        raise_fatal("FreeTDS.Dblib.nextrow: dbnumcols doesn't match actual " \
+                    "number of columns");
+      } if (data == NULL) {
+        if (len == 0) {
+          vconstructor = Val_int(0); /* constant constructor NULL */
+        } else {
+          raise_fatal("Freetds.Dlib.nextrow: internal error, received NULL " \
+                      "data but non-zero data length");
+        }
       } else {
         switch (ty = dbcoltype(dbproc, c)) {
         case SYBCHAR:    /* fall-through */
