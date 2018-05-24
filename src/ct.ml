@@ -1,20 +1,20 @@
 (*
-  This file is part of ocaml-freetds - An OCaml binding to the FreeTDS library
-  Copyright (C) 2004 Kenneth Knowles
+   This file is part of ocaml-freetds - An OCaml binding to the FreeTDS library
+   Copyright (C) 2004 Kenneth Knowles
 
-  ocaml-freetds is free software; you can redistribute it and/or modify
-  it under the terms of the GNU Lesser General Public License as published by
-  the Free Software Foundation; either version 2.1 of the License, or
-  (at your option) any later version.
+   ocaml-freetds is free software; you can redistribute it and/or modify
+   it under the terms of the GNU Lesser General Public License as published by
+   the Free Software Foundation; either version 2.1 of the License, or
+   (at your option) any later version.
 
-  ocaml-freetds is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU Lesser General Public License for more details.
+   ocaml-freetds is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU Lesser General Public License for more details.
 
-  You should have received a copy of the GNU Lesser General Public License
-  along with ocaml-freetds; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+   You should have received a copy of the GNU Lesser General Public License
+   along with ocaml-freetds; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
 open Printf
@@ -22,14 +22,14 @@ open Printf
 (** A wrapper on the FreeTDS library for accessing Sybase and Microsoft database providers *)
 
 type location =
-        [
+    [
         | `Server
         | `Client
-        ]
+    ]
 
 
 type severity =
-        [
+    [
         | `Inform
         | `Api_fail
         | `Retry_fail
@@ -38,7 +38,7 @@ type severity =
         | `Comm_fail
         | `Internal_fail
         | `Fatal
-        ]
+    ]
 
 (* This is the catch-all exception that client code should trap *)
 exception End_results
@@ -88,7 +88,7 @@ type column = {
 }
 
 type sql_t =
-        [
+    [
         | `Bit of bool
         | `Tinyint of int
         | `Smallint of int
@@ -110,7 +110,7 @@ type sql_t =
         | `Decimal of string
 
         | `Null
-        ]
+    ]
 
 let _ =
     List.iter (fun (x,y) -> Callback.register_exception x y)

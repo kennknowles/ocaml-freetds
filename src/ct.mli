@@ -1,20 +1,20 @@
 (*
-  This file is part of ocaml-freetds - An OCaml binding to the FreeTDS library
-  Copyright (C) 2004 Kenneth Knowles
+   This file is part of ocaml-freetds - An OCaml binding to the FreeTDS library
+   Copyright (C) 2004 Kenneth Knowles
 
-  ocaml-freetds is free software; you can redistribute it and/or modify
-  it under the terms of the GNU Lesser General Public License as published by
-  the Free Software Foundation; either version 2.1 of the License, or
-  (at your option) any later version.
+   ocaml-freetds is free software; you can redistribute it and/or modify
+   it under the terms of the GNU Lesser General Public License as published by
+   the Free Software Foundation; either version 2.1 of the License, or
+   (at your option) any later version.
 
-  ocaml-freetds is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU Lesser General Public License for more details.
+   ocaml-freetds is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU Lesser General Public License for more details.
 
-  You should have received a copy of the GNU Lesser General Public License
-  along with ocaml-freetds; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+   You should have received a copy of the GNU Lesser General Public License
+   along with ocaml-freetds; if not, write to the Free Software
+   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
 
@@ -54,7 +54,7 @@ type cmd_option = [ `NoRecompile | `Recompile ]
 
 (** Result types; usually we only care about Row *)
 type result_type =
-        [ `Cmd_done | `Cmd_fail | `Cmd_succeed | `Param | `Row | `Status ]
+    [ `Cmd_done | `Cmd_fail | `Cmd_succeed | `Param | `Row | `Status ]
 
 
 type resinfo_type = [ `Cmd_number | `Numdata | `Row_count ]
@@ -69,14 +69,14 @@ type column = {
 
 (** Types for fetching / inspecting errors *)
 type location =
-        [
+    [
         | `Server
         | `Client
-        ]
+    ]
 
 
 type severity =
-        [
+    [
         | `Inform
         | `Api_fail
         | `Retry_fail
@@ -85,31 +85,31 @@ type severity =
         | `Comm_fail
         | `Internal_fail
         | `Fatal
-        ]
+    ]
 
 type sql_t =
-[
-| `Bit of bool
-| `Tinyint of int
-| `Smallint of int
-| `Int of int32
-| `Text of string
-| `String of string
-| `Binary of string
+    [
+        | `Bit of bool
+        | `Tinyint of int
+        | `Smallint of int
+        | `Int of int32
+        | `Text of string
+        | `String of string
+        | `Binary of string
 
-(* 64 bits *)
-| `Float of float
+        (* 64 bits *)
+        | `Float of float
 
-(* These are the types I didn't want to even try to convert, so I let
-   the DB convert them to strings for me *)
+        (* These are the types I didn't want to even try to convert, so I let
+           the DB convert them to strings for me *)
 
-(* Contains DATETIME and DATETIME4 *)
-| `Datetime of string
+        (* Contains DATETIME and DATETIME4 *)
+        | `Datetime of string
 
-(* Contains DECIMAL, MONEY, NUMERIC, etc *)
-| `Decimal of string
-| `Null
-]
+        (* Contains DECIMAL, MONEY, NUMERIC, etc *)
+        | `Decimal of string
+        | `Null
+    ]
 
 (** {4 Context} *)
 external ctx_create : unit -> context = "mltds_cs_ctx_create"
