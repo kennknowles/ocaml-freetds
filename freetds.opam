@@ -35,6 +35,7 @@ depexts: [
   [["opensuse"] ["freetds-devel"]]
   [["freebsd"] ["freetds-devel"]]
   [["osx" "homebrew"] ["freetds"]]
+# [["cygwinports" "x86_64"] ["mingw64-x86_64-freetds"]]
 ]
 
 available: [ ocaml-version >= "4.02.3" ]
