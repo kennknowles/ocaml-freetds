@@ -11,6 +11,6 @@ install:
 	@jbuilder install
 
 test:
-	@jbuilder runtest
+	@jbuilder runtest --force
 
 .PHONY: all build clean install test
