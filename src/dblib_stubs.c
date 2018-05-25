@@ -504,8 +504,7 @@ CAMLexport value ocaml_freetds_dbnextrow(value vdbproc)
           break;
 
         default:
-          printf("Freetds.Dblib.nextrow: dbcoltype not handled (C stub)\n");
-          exit(1);
+          raise_fatal("Freetds.Dblib.nextrow: dbcoltype not handled (C stub)\n");
         }
       }
       /* Place the data in front of the list [vrow]. */
