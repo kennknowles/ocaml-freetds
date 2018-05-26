@@ -4,6 +4,10 @@ open Printf
 
 let string_of_string s = s
 
+let string_of_list f l =
+  List.map f l
+  |> String.concat ", "
+
 let get_params () =
   [ "USER" ; "PASSWORD" ; "SERVER" ; "DATABASE" ]
   |> List.map (fun suffix ->
@@ -44,13 +48,48 @@ let test_basic_query params _ =
       |> assert_equal ~printer:string_of_string "test";
       Dblib.coltype conn 1
       |> assert_equal ~printer:Dblib.string_of_col_type Dblib.SYBINT4;
+      assert_raises
+        (Dblib.Error (Dblib.PROGRAM, "Column number out of range"))
+        (fun () -> Dblib.coltype conn 2);
+      assert_raises
+        (Dblib.Error (Dblib.PROGRAM, "Column number out of range"))
+        (fun () -> Dblib.colname conn 2);
       Dblib.nextrow conn
-      |> assert_equal [ Dblib.INT 1 ];
+      |> assert_equal ~printer:(string_of_list Dblib.string_of_data)
+        [ Dblib.INT 1 ];
       assert_raises Not_found (fun () -> Dblib.nextrow conn);
       Dblib.results conn
       |> assert_equal ~printer:string_of_bool false;
       Dblib.count conn
       |> assert_equal ~printer:string_of_int 1)
+
+let test_empty_strings params _ =
+  with_conn params (fun conn ->
+      (* Cast empty string to various types since conversions are different for
+         each *)
+      Dblib.sqlexec conn
+        {|
+          SELECT CAST('' AS VARCHAR(10)) AS vc,
+                 CAST('' AS TEXT) AS txt,
+                 CAST('' AS VARBINARY(10)) AS vb,
+                 CAST(NULL AS VARCHAR(1)) AS nvc,
+                 CAST(NULL AS TEXT) AS ntxt,
+                 CAST(NULL AS VARBINARY(10)) AS nvb
+        |};
+      Dblib.results conn
+      |> assert_bool "query has results";
+      let cols = [ 1 ; 2 ; 3 ; 4 ; 5 ; 6 ] in
+      cols
+      |> List.map (Dblib.colname conn)
+      |> assert_equal ~printer:(string_of_list string_of_string)
+        [ "vc" ; "txt" ; "vb" ; "nvc" ; "ntxt" ; "nvb" ];
+      cols
+      |> List.map (Dblib.coltype conn)
+      |> assert_equal ~printer:(string_of_list Dblib.string_of_col_type)
+        Dblib.([ SYBCHAR ; SYBTEXT ; SYBBINARY ; SYBCHAR ; SYBTEXT ; SYBBINARY ]);
+      Dblib.nextrow conn
+      |> assert_equal ~printer:(string_of_list Dblib.string_of_data)
+        Dblib.([ STRING "" ; STRING "" ; BINARY "" ; NULL ; NULL ; NULL ]))
 
 let () =
   match get_params () with
@@ -59,7 +98,8 @@ let () =
                    aren't set"
   | Some params ->
     [ "connect", test_connect
-    ; "basic query", test_basic_query ]
+    ; "basic query", test_basic_query
+    ; "empty strings", test_empty_strings ]
     |> List.map (fun (name, test) -> name >:: test params)
     |> test_list
     |> run_test_tt_main
