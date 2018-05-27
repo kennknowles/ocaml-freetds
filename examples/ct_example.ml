@@ -84,7 +84,7 @@ let _ =
     let cmd = cmd_alloc conn in
     debug_print "Allocated command\n";
 
-	command cmd `Lang !sql;
+    command cmd `Lang !sql;
     debug_print (sprintf "Set command text to '%s'\n" !sql);
 
     send cmd;
@@ -126,7 +126,7 @@ let _ =
 
                                             | `Int i -> printf "%-20li" i
                                             | `Binary _ -> printf "%-20s" "<binary>"
-                                            | `Bit b -> printf "%-20B" b
+                                            | `Bit b -> printf "%B" b
 
                                             | `Null -> printf "%-20s" "<null>"
                                    )

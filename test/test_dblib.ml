@@ -101,5 +101,5 @@ let () =
     ; "basic query", test_basic_query
     ; "empty strings", test_empty_strings ]
     |> List.map (fun (name, test) -> name >:: test params)
-    |> test_list
-    |> run_test_tt_main
+    |> OUnit2.test_list
+    |> OUnit2.run_test_tt_main
