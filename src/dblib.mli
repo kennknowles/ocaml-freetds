@@ -59,10 +59,10 @@ val connect : ?user:string -> ?password:string ->
     files" is returned in {!Error}. *)
 
 val close : dbprocess -> unit
-    (** [dbclose conn] close the connection [conn] to the server. *)
+    (** [close conn] close the connection [conn] to the server. *)
 
 val use : dbprocess -> string -> unit
-    (** [dbuse conn name] change the current database to [name].
+    (** [use conn name] change the current database to [name].
         @raise Dblib.Error if the database cannot be used. *)
 
 val name : dbprocess -> string
@@ -159,17 +159,20 @@ val count : dbprocess -> int
 (** {2 Error handling} *)
 
 type severity =
-  | INFO
-  | USER
-  | NONFATAL
-  | CONVERSION
-  | SERVER
-  | TIME
-  | PROGRAM
-  | RESOURCE
-  | COMM
-  | FATAL
-  | CONSISTENCY
+  | INFO        (** Informational, non-error. *)
+  | USER        (** User error. *)
+  | NONFATAL    (** Non-fatal error. *)
+  | CONVERSION  (** Error in DB-Library data conversion. *)
+  | SERVER      (** The Server has returned an error flag. *)
+  | TIME        (** We have exceeded our timeout period while waiting
+                   for a response from the Server—the [dbprocess] is
+                   still alive. *)
+  | PROGRAM     (** Coding error in user program. *)
+  | RESOURCE    (** Running out of resources—the [dbprocess] may be dead. *)
+  | COMM        (** Failure in communication with Server—the [dbprocess]
+                   is dead. *)
+  | FATAL       (** Fatal error—the [dbprocess] is dead. *)
+  | CONSISTENCY (** Internal software error—please open an issue. *)
 
 exception Error of severity * string
 (** [Error(severity, err, message)] is raised on dblib errors.  You
