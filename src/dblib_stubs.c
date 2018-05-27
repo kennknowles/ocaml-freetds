@@ -381,27 +381,27 @@ CAMLexport value ocaml_freetds_dbnextrow(value vdbproc)
 CAMLexport value ocaml_freetds_dbdata(value vdbproc, value vc)
 {
   /* noalloc */
-  return((value) dbdata(DBPROCESS_VAL(dbproc), Int_val(vc)));
+  return((value) dbdata(DBPROCESS_VAL(vdbproc), Int_val(vc)));
 }
 
 CAMLexport value ocaml_freetds_is_null(value data_ptr)
 {
   /* noalloc */
-  return(Val_bool((BYTE *) data_prt == NULL));
+  return(Val_bool((BYTE *) data_ptr == NULL));
 }
 
 CAMLexport value ocaml_freetds_dbdatlen(value vdbproc, value vc)
 {
   /* noalloc */
-  return(Val_int(dbdatlen(DBPROCESS_VAL(dbproc), Int_val(vc))));
+  return(Val_int(dbdatlen(DBPROCESS_VAL(vdbproc), Int_val(vc))));
 }
 
 
-CAMLexport value ocaml_freetds_dbdata(value vdbproc, value vcol,
-                                      value vdata)
+CAMLexport value ocaml_freetds_get_data(value vdbproc, value vcol,
+                                        value vdata)
 {
   CAMLparam3(vdbproc, vcol, vdata);
-  CAMLlocal2(vdata, vconstructor);
+  CAMLlocal1(vconstructor);
   DBPROCESS *dbproc = DBPROCESS_VAL(vdbproc);
   BYTE *data = (BYTE *) vdata, *data_byte;
   DBINT len, converted_len;

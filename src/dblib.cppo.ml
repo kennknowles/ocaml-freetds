@@ -162,9 +162,11 @@ let string_of_data = function
 
 
 external dbnextrow : dbprocess -> int = "ocaml_freetds_dbnextrow" [@@noalloc]
-(* Return the ID of computed queries or %%REG_ROW%% (value extracted
+(* Return the ID of computed queries or REG_ROW (value extracted
    by discover.ml) for a regular result.
    Raises [Not_found] if NO_MORE_ROWS. *)
+
+type data_ptr
 
 external dbdata : dbprocess -> col:int -> data_ptr
   = "ocaml_freetds_dbdata" [@@noalloc]
@@ -175,13 +177,13 @@ external is_null : data_ptr -> bool = "ocaml_freetds_is_null" [@@noalloc]
 external dbdatlen : dbprocess -> col:int -> int
   = "ocaml_freetds_dbdatlen" [@@noalloc]
 
-external dbdata : dbprocess -> col:int -> data_ptr -> data
-  = "ocaml_freetds_dbdata"
+external get_data : dbprocess -> col:int -> data_ptr -> data
+  = "ocaml_freetds_get_data"
 (* Beware that [data_ptr] must be those associated with [col]. *)
 
 let nextrow db =
   let status = dbnextrow db in
-  if status = %%REG_ROW%% then (
+  if status = REG_ROW then (
     let row = ref [] in
     for c = numcols db downto 1 do
       let data_ptr = dbdata db ~col:c in
@@ -191,20 +193,21 @@ let nextrow db =
                            Contact the OCaml FreeTDS developers." c in
         raise(Error(FATAL, msg))
       else if is_null data_ptr then
-        if len = 0 then NULL
+        if len = 0 then
+          row := NULL :: !row
         else
           let msg = sprintf "Freetds.Dlib.nextrow: column %d has a length \
                              of %d but no data is returned." c len in
           raise(Error(FATAL, msg))
       else
-        row := dbdata db data_ptr ~len :: !row
+        row := get_data db ~col:c data_ptr :: !row
     done;
     !row
   )
   else
     (* [status] = ID of computed row *)
     failwith "Computed rows are not handled at the moment.  Please write \
-              to the developers of the OCaml FreeTDS."
+              to the developers of OCaml FreeTDS."
 
 external count : dbprocess -> int = "ocaml_freetds_dbcount"
 

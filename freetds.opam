@@ -21,6 +21,10 @@ build-test: ["jbuilder" "runtest" "-p" name "-j" jobs]
 
 depends: [
   "jbuilder" {build & >= "1.0+beta19.1"}
+  "cppo" {build}
+  "base" {build}
+  "stdio" {build}
+  "configurator" {build}
   "ounit" {test & >= "2.0.0"}
 ]
 depexts: [
