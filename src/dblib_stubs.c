@@ -395,8 +395,8 @@ CAMLexport value ocaml_freetds_dbnextrow(value vdbproc)
 
 CAMLexport value ocaml_freetds_dbdata(value vdbproc, value vc)
 {
-  /* noalloc */
-  return((value) dbdata(DBPROCESS_VAL(vdbproc), Int_val(vc)));
+  CAMLparam2(vdbproc, vc);
+  CAMLreturn((value) dbdata(DBPROCESS_VAL(vdbproc), Int_val(vc)));
 }
 
 CAMLexport value ocaml_freetds_is_null(value data_ptr)

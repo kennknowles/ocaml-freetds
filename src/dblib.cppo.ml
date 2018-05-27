@@ -194,7 +194,7 @@ let string_of_data = function
   | DECIMAL s -> sprintf "DECIMAL(%S)" s
 
 
-external dbnextrow : dbprocess -> int = "ocaml_freetds_dbnextrow" [@@noalloc]
+external dbnextrow : dbprocess -> int = "ocaml_freetds_dbnextrow"
 (* Return the ID of computed queries or REG_ROW (value extracted
    by discover.ml) for a regular result.
    Raises [Not_found] if NO_MORE_ROWS. *)
@@ -202,7 +202,7 @@ external dbnextrow : dbprocess -> int = "ocaml_freetds_dbnextrow" [@@noalloc]
 type data_ptr
 
 external dbdata : dbprocess -> col:int -> data_ptr
-  = "ocaml_freetds_dbdata" [@@noalloc]
+  = "ocaml_freetds_dbdata"
 (* Note that [data_ptr] is a pointer to the data. *)
 
 external is_null : data_ptr -> bool = "ocaml_freetds_is_null" [@@noalloc]
