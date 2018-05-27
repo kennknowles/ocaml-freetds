@@ -1,13 +1,19 @@
 platform:
   - x64
 
+services:
+  - mssql2017
+
 environment:
   global:
     PACKAGE: freetds
     FORK_USER: ocaml
     FORK_BRANCH: master
     CYG_ROOT: C:\cygwin64
-    OPAM_VERBOSE: 1
+    MSSQL_TEST_USER: sa
+    MSSQL_TEST_PASSWORD: Password12!
+    MSSQL_TEST_SERVER: 127.0.0.1 #(local)\SQL2017
+    MSSQL_TEST_DATABASE: master
   matrix:
     - OPAM_SWITCH: 4.04.2+mingw64c
 #    - OPAM_SWITCH: 4.04.2+msvc64c
