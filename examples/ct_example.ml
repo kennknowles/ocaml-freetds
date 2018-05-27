@@ -125,7 +125,7 @@ let _ =
                                             | `Float f -> printf "%-20f" f
 
                                             | `Int i -> printf "%-20li" i
-                                            | `Binary b -> printf "%-20s" "<binary>"
+                                            | `Binary _ -> printf "%-20s" "<binary>"
                                             | `Bit b -> printf "%-20B" b
 
                                             | `Null -> printf "%-20s" "<null>"

@@ -17,8 +17,6 @@
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-open Printf
-
 (** A wrapper on the FreeTDS library for accessing Sybase and Microsoft database providers *)
 
 type location =
@@ -66,18 +64,18 @@ type cmd_option = [ `Recompile | `NoRecompile ]
 type result_type = [ `Row | `Param | `Status | `Cmd_done | `Cmd_succeed | `Cmd_fail ]
 type resinfo_type = [ `Row_count | `Cmd_number | `Numdata ]
 
-type datetime = {
-    days : int;
-    minutes : int;
-    three_hundredths : int;
-}
+(* type datetime = {
+ *     days : int;
+ *     minutes : int;
+ *     three_hundredths : int;
+ * } *)
 
-type locale = {
-    language : string;
-    charset : string;
-    time : string;
-    collate : string;
-}
+(* type locale = {
+ *     language : string;
+ *     charset : string;
+ *     time : string;
+ *     collate : string;
+ * } *)
 
 type status = [ `CanBeNull | `NoData | `Identity | `Return ]
 
@@ -150,7 +148,7 @@ external buffer_contents : binding_buffer -> sql_t = "mltds_buffer_contents"
 
 (* A level of indirection to save me some C *)
 external bind_col : command -> maxlen:int -> int -> column = "mltds_ct_bind"
-let bind comm ?(maxlen = 256) index = bind_col comm maxlen index
+let bind comm ?(maxlen = 256) index = bind_col comm ~maxlen index
 
 (* Closing of connections *)
 external close_con : connection -> bool -> unit = "mltds_ct_close"

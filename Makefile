@@ -1,7 +1,7 @@
 all: build
 
 build:
-	@jbuilder build @install
+	@jbuilder build @install --dev
 
 clean:
 	@jbuilder clean
