@@ -22,7 +22,6 @@
 #include <sybdb.h>
 #include <syberror.h>
 #include <string.h>
-#include <stdio.h>
 #include <math.h>
 
 #include <caml/mlvalues.h>
@@ -151,6 +150,7 @@ CAMLexport value ocaml_freetds_dbinit(value unit)
    * handler aborts the program under some circumstances. */
   dberrhandle(&err_handler);
   dbmsghandle(&msg_handler);
+  dbsetversion(DBVERSION_100);
   CAMLreturn(Val_unit);
 }
 

@@ -8,6 +8,8 @@ let string_of_list f l =
   List.map f l
   |> String.concat ", "
 
+let string_of_row r = string_of_list Dblib.string_of_data r
+
 let get_params () =
   [ "USER" ; "PASSWORD" ; "SERVER" ; "DATABASE" ]
   |> List.map (fun suffix ->
@@ -92,20 +94,56 @@ let test_empty_strings params _ =
       cols
       |> List.map (Dblib.coltype conn)
       |> assert_equal ~printer:(string_of_list Dblib.string_of_col_type)
-        Dblib.([ SYBCHAR ; SYBTEXT ; SYBBINARY ; SYBCHAR ; SYBTEXT ; SYBBINARY ]);
+        Dblib.([SYBCHAR ; SYBTEXT; SYBBINARY; SYBCHAR; SYBTEXT; SYBBINARY]);
       Dblib.nextrow conn
-      |> assert_equal ~printer:(string_of_list Dblib.string_of_data)
-        Dblib.([ STRING "" ; STRING "" ; BINARY "" ; NULL ; NULL ; NULL ]))
+      |> assert_equal ~printer:string_of_row
+        Dblib.([STRING ""; STRING ""; BINARY ""; NULL; NULL; NULL]))
+
+let test_data params _ =
+  with_conn params (fun conn ->
+      Dblib.sqlexec conn "SELECT \
+                          CAST('a' AS VARCHAR(10)) AS vc, \
+                          CAST('a' AS CHAR(10)) AS c, \
+                          CAST('abc' AS TEXT) AS txt, \
+                          CAST(1 AS INT) AS i, \
+                          CAST(3.4 AS DOUBLE PRECISION) AS d";
+      Dblib.nextrow conn
+      |> assert_equal ~printer:string_of_row
+           Dblib.([STRING "a"; STRING "a"; STRING "abc"; INT 1; FLOAT 4.3])
+    )
+
+let test_insert params _ =
+  with_conn params (fun conn ->
+      Dblib.sqlexec conn "SET IMPLICIT_TRANSACTIONS OFF";
+      Dblib.sqlexec conn "CREATE TABLE #test(
+                          c1 VARCHAR(10) DEFAULT '',
+                          c2 VARCHAR(10) DEFAULT '',
+                          c3 INT, c4 DOUBLE PRECISION)";
+      Dblib.sqlexec conn "INSERT INTO #test VALUES('a', 'b', 3, 4.2)";
+      Dblib.count conn |> assert_equal ~printer:string_of_int 1;
+      Dblib.sqlexec conn "INSERT INTO #test VALUES('', '', -1, -6.3)";
+      Dblib.sqlexec conn "SELECT c1, LEN(c1), RTRIM(c2), c3, c4 FROM #test";
+      Dblib.results conn
+      |> assert_bool "query has results";
+      Dblib.nextrow conn
+      |> assert_equal ~printer:string_of_row
+           Dblib.([STRING "a"; INT 1; STRING "b"; INT 3; FLOAT 4.2]);
+      Dblib.nextrow conn
+      |> assert_equal ~printer:string_of_row
+           Dblib.([STRING ""; INT 0; STRING ""; INT(-1); FLOAT(-6.3)]);
+    )
 
 let () =
   match get_params () with
   | None ->
-    print_endline "Skipping tests since MSSQL_TEST_* environment variables \
-                   aren't set"
+     print_endline "Skipping tests since MSSQL_TEST_* environment variables \
+                    aren't set"
   | Some params ->
-    [ "connect", test_connect
-    ; "basic query", test_basic_query
-    ; "empty strings", test_empty_strings ]
-    |> List.map (fun (name, test) -> name >:: test params)
-    |> OUnit2.test_list
-    |> OUnit2.run_test_tt_main
+     [ "connect", test_connect
+     ; "basic query", test_basic_query
+     ; "empty strings", test_empty_strings
+     ; "data", test_data
+     ; "insert", test_insert ]
+     |> List.map (fun (name, test) -> name >:: test params)
+     |> OUnit2.test_list
+     |> OUnit2.run_test_tt_main
