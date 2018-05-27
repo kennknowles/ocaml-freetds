@@ -160,11 +160,11 @@ static int dbprocess_compare(value v1, value v2)
   else return(0);
 }
 
-static long dbprocess_hash(value v)
+static intnat dbprocess_hash(value v)
 {
   /* The pointer will do a good hash and respect compare v1 v2 = 0 ==>
      hash(v1) = hash(v2) */
-  return((long) DBPROCESS_VAL(v));
+  return((intptr_t) DBPROCESS_VAL(v));
 }
 
 static struct custom_operations dbprocess_ops = {
