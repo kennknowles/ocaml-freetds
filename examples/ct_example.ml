@@ -28,123 +28,110 @@ let sql = ref ""
 let debug = ref false
 
 let debug_print s =
-    if !debug then print_string s else ();
-    flush stdout
-
+  if !debug then print_string s else ();
+  flush stdout
 
 let raise_messages conn =
-    List.iter (fun (sev, err) ->
-                   if sev <> `Inform then printf "Client: %s\n" err)
+  List.iter (fun (sev, err) ->
+      if sev <> `Inform then printf "Client: %s\n" err)
+    (get_messages conn [`Client]);
 
-        (get_messages conn [`Client]);
+  List.iter (fun (sev, err) ->
+      if sev <> `Inform then printf "Server: %s\n" err)
+    (get_messages conn [`Server])
 
-    List.iter (fun (sev, err) ->
-                   if sev <> `Inform then printf "Server: %s\n" err)
-        (get_messages conn [`Server])
+let () =
+  Arg.parse [
+      "-server", Arg.Set_string server, "Server to connect to";
+      "-db", Arg.Set_string database, "Database to connect to";
+      "-user", Arg.Set_string username, "Username to connect with";
+      "-pwd", Arg.Set_string password, "Password to connect with";
+      "-debug", Arg.Set debug, "Enable debugging output";
+    ]
+    (fun s -> sql := s)
+    "Usage: ct_example [options] sql";
 
-let _ =
-    Arg.parse
-        [
-            "-server", Arg.Set_string server, "Server to connect to";
-            "-db", Arg.Set_string database, "Database to connect to";
-            "-user", Arg.Set_string username, "Username to connect with";
-            "-pwd", Arg.Set_string password, "Password to connect with";
-            "-debug", Arg.Set debug, "Enable debugging output";
-        ]
-        (fun s -> sql := s)
-        "Usage: ct_example [options] sql";
+  let context = ctx_create () in
+  let conn = con_alloc context in
+  debug_print "Allocated connection\n";
 
-    let context = ctx_create () in
-    let conn = con_alloc context in
-    debug_print "Allocated connection\n";
+  con_setstring conn `Username !username;
+  debug_print (sprintf "Set username to %s\n" !username);
 
-    con_setstring conn `Username !username;
-    debug_print (sprintf "Set username to %s\n" !username);
+  con_setstring conn `Password !password;
+  debug_print (sprintf "Set password to %s\n" !password);
 
-    con_setstring conn `Password !password;
-    debug_print (sprintf "Set password to %s\n" !password);
+  debug_print (sprintf "Connecting to %s ..." !server);
+  connect conn !server;
+  debug_print "Connected\n";
 
-    debug_print (sprintf "Connecting to %s ..." !server);
-    connect conn !server;
-    debug_print "Connected\n";
-
-    if !database <> "" then
-        (try
-            let cmd = cmd_alloc conn in
-             command cmd `Lang ("USE " ^ !database);
-             send cmd;
-             ignore (results cmd)
-         with
-             | Cmd_fail
-             | Failure _ -> raise_messages conn);
-
-    debug_print (sprintf "Set database to %s\n" !database);
-
-
-    let cmd = cmd_alloc conn in
-    debug_print "Allocated command\n";
-
-    command cmd `Lang !sql;
-    debug_print (sprintf "Set command text to '%s'\n" !sql);
-
-    send cmd;
-    debug_print "Sent command\n";
-
+  if !database <> "" then
     (try
-         while true do
-             match (results cmd) with
-                 | `Cmd_fail -> failwith "Command Failed!"
-                 | `Cmd_succeed -> debug_print "Command Succeeded\n"
-                 | `Cmd_done -> ()
-                 | `Status -> ()
-                 | `Param -> failwith "Don't handle param results"
-                 | `Row ->
-                       debug_print (sprintf "Got row results.\n");
-
-                       let cols = Array.init
-                                      (res_info cmd `Numdata)
-                                      (fun i -> bind cmd (i+1)) in
-
-                       Array.iter (fun col -> printf "%-20s" col.col_name) cols;
-                       printf "\n%!";
-
-                       try
-                           while true do
-                               ignore (fetch cmd);
-                               Array.iter
-                                   (fun col ->
-                                        match buffer_contents col.col_buffer with
-                                            | `Datetime s
-                                            | `Decimal s
-                                            | `Text s
-                                            | `String s -> printf "%-20s" s
-
-                                            | `Smallint i
-                                            | `Tinyint i -> printf "%-20i" i
-
-                                            | `Float f -> printf "%-20f" f
-
-                                            | `Int i -> printf "%-20li" i
-                                            | `Binary _ -> printf "%-20s" "<binary>"
-                                            | `Bit b -> printf "%B" b
-
-                                            | `Null -> printf "%-20s" "<null>"
-                                   )
-                                   cols;
-                               printf "\n%!";
-                           done
-                       with
-                               (* We can only get the number of rows after we process them
-                                  all *)
-                           | End_data ->
-                                 match (res_info cmd `Row_count) with
-                                     | -1 -> ()
-                                     | i -> printf "(%i rows affected)\n\n" i
-         done;
+       let cmd = cmd_alloc conn in
+       command cmd `Lang ("USE " ^ !database);
+       send cmd;
+       ignore (results cmd)
      with
-         | End_results -> ()
-         | Cmd_fail -> raise_messages conn
-         | Failure s -> printf "%s\n%!" s; raise_messages conn
-    );
+     | Cmd_fail
+       | Failure _ -> raise_messages conn);
 
-    close conn;
+  debug_print (sprintf "Set database to %s\n" !database);
+
+  let cmd = cmd_alloc conn in
+  debug_print "Allocated command\n";
+
+  command cmd `Lang !sql;
+  debug_print (sprintf "Set command text to '%s'\n" !sql);
+
+  send cmd;
+  debug_print "Sent command\n";
+  (try
+     while true do
+       match (results cmd) with
+       | `Cmd_fail -> failwith "Command Failed!"
+       | `Cmd_succeed -> debug_print "Command Succeeded\n"
+       | `Cmd_done -> ()
+       | `Status -> ()
+       | `Param -> failwith "Don't handle param results"
+       | `Row ->
+          debug_print (sprintf "Got row results.\n");
+          let cols = Array.init (res_info cmd `Numdata)
+                       (fun i -> bind cmd (i+1)) in
+          Array.iter (fun col -> printf "%-20s" col.col_name) cols;
+          printf "\n%!";
+          try
+            while true do
+              ignore (fetch cmd);
+              Array.iter
+                (fun col ->
+                  match buffer_contents col.col_buffer with
+                  | `Datetime s
+                    | `Decimal s
+                    | `Text s
+                    | `String s -> printf "%-20s" s
+                  | `Smallint i
+                    | `Tinyint i -> printf "%-20i" i
+                  | `Float f -> printf "%-20f" f
+                  | `Int i -> printf "%-20li" i
+                  | `Binary _ -> printf "%-20s" "<binary>"
+                  | `Bit b -> printf "%B" b
+                  | `Null -> printf "%-20s" "<null>"
+                )
+                cols;
+              printf "\n%!";
+            done
+          with
+          (* We can only get the number of rows after we process them
+                                  all *)
+          | End_data ->
+             match (res_info cmd `Row_count) with
+             | -1 -> ()
+             | i -> printf "(%i rows affected)\n\n" i
+     done;
+   with
+   | End_results -> ()
+   | Cmd_fail -> raise_messages conn
+   | Failure s -> printf "%s\n%!" s; raise_messages conn
+  );
+
+  close conn

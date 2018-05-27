@@ -27,51 +27,48 @@ let sql = ref ""
 let debug = ref false
 
 let debug_print s =
-    if !debug then print_string s else ();
-    flush stdout
+  if !debug then print_string s else ();
+  flush stdout
 
 let print_row row =
-    Array.iter
-        (function
-             | `String s -> printf "%-20s" s
-             | `Int i -> printf "%-20i" i
-             | _ -> printf "%-20s" "?")
-        row;
-    printf "\n%!"
+  Array.iter (function
+      | `String s -> printf "%-20s" s
+      | `Int i -> printf "%-20i" i
+      | _ -> printf "%-20s" "?")
+    row;
+  printf "\n%!"
 
+let () =
+  try
+    Arg.parse [
+        "-server", Arg.Set_string server, "Server to connect to";
+        "-db", Arg.Set_string database, "Database to connect to";
+        "-user", Arg.Set_string username, "Username to connect with";
+        "-pwd", Arg.Set_string password, "Password to connect with";
+        "-debug", Arg.Set debug, "Enable debugging output";
+      ]
+      (fun s -> sql := s)
+      "Usage: dbi_example [options] sql";
 
-let _ =
-    try
-        Arg.parse
-            [
-                "-server", Arg.Set_string server, "Server to connect to";
-                "-db", Arg.Set_string database, "Database to connect to";
-                "-user", Arg.Set_string username, "Username to connect with";
-                "-pwd", Arg.Set_string password, "Password to connect with";
-                "-debug", Arg.Set debug, "Enable debugging output";
-            ]
-            (fun s -> sql := s)
-            "Usage: dbi_example [options] sql";
+    let conn = new connection ~host:!server ~user:!username
+                 ~password:!password !database in
 
-        let conn = new connection ~host:!server ~user:!username ~password:!password !database in
+    if !debug then conn # set_debug true;
+    (* Cant just conn#set_debug !debug because it has output *)
 
-        if !debug then conn # set_debug true;
-        (* Cant just conn#set_debug !debug because it has output *)
+    debug_print "Created connection\n";
 
-        debug_print "Created connection\n";
+    let sth = conn # ex_multi !sql [] in
 
-        let sth = conn # ex_multi !sql [] in
+    debug_print "Executed SQL\n";
 
-        debug_print "Executed SQL\n";
+    List.iter (fun rs ->
+        Array.iter (fun name -> printf "%-20s" name) (rs.rs_names);
+        printf "\n";
+        Array.iter print_row rs.rs_rows;
+        printf "\n")
+      sth # rs_fetch_all;
 
-        List.iter
-            (fun rs ->
-                Array.iter (fun name -> printf "%-20s" name) (rs.rs_names);
-                printf "\n";
-                Array.iter print_row rs.rs_rows;
-                printf "\n")
-            sth # rs_fetch_all;
-
-        conn # close ()
-    with
-        | Dbi.SQL_error err -> printf "Error:\n%s\n" err
+    conn # close ()
+  with
+  | Dbi.SQL_error err -> printf "Error:\n%s\n" err
