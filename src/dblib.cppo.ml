@@ -74,11 +74,27 @@ let connect ?user ?password ?charset ?language ?application server =
 
 external close : dbprocess -> unit = "ocaml_freetds_dbclose"
 
-external use : dbprocess -> string -> unit = "ocaml_freetds_dbuse"
+external dbuse : dbprocess -> string -> unit = "ocaml_freetds_dbuse"
+
+let use db name =
+  try dbuse db name
+  with _ ->
+    let msg = sprintf "Freetds.Dblib.use: unable to open the database %S"
+                name in
+    raise(Error(PROGRAM, msg))
 
 external name : dbprocess -> string = "ocaml_freetds_dbname"
 
-external sqlexec : dbprocess -> string -> unit = "ocaml_freetds_dbsqlexec"
+external dbsqlexec : dbprocess -> string -> unit = "ocaml_freetds_dbsqlexec"
+
+let sqlexec db sql =
+  try dbsqlexec db sql
+  with Not_found ->
+    let msg = sprintf "Freetds.Dblib.sqlexec: the SQL query %S is invalid. \
+                       It may be due to a SQL syntax error, incorrect column \
+                       or table names, or if the previous query results were \
+                       not completely read,..." sql in
+    raise (Error(PROGRAM, msg))
 
 external cancel :  dbprocess -> unit = "ocaml_freetds_dbcancel"
 external canquery :  dbprocess -> unit = "ocaml_freetds_dbcanquery"

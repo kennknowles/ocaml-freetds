@@ -32,9 +32,15 @@
 #include <caml/callback.h>
 #include <caml/custom.h>
 
-static void raise_fatal(char*) __attribute__ ((noreturn));
+/* OCaml severity.  Keep in sync with OCaml [Dblib]. */
+#define SEVERITY_PROGRAM Val_int(6)
+#define SEVERITY_RESOURCE Val_int(7)
+#define SEVERITY_FATAL Val_int(9)
+#define SEVERITY_CONSISTENCY Val_int(10)
 
-static void raise_fatal(char *msg)
+static void raise_error(value, char*) __attribute__ ((noreturn));
+
+static void raise_error(value severity, char *msg)
 {
   CAMLparam0();
   CAMLlocal1(vmsg);
@@ -45,7 +51,7 @@ static void raise_fatal(char *msg)
     exn = caml_named_value("Freetds.Dblib.Error");
   }
 
-  args[0] = Val_int(9); /* FATAL (on OCaml side) */
+  args[0] = severity;
   vmsg = caml_copy_string(msg);
   args[1] = vmsg;
   caml_raise_with_args(*exn, 2, args);
@@ -139,7 +145,7 @@ CAMLexport value ocaml_freetds_dbinit(value unit)
 {
   CAMLparam0();
   if (dbinit() == FAIL) {
-    raise_fatal("Cannot initialize DB-lib!");
+    raise_error(SEVERITY_FATAL, "Cannot initialize DB-lib!");
   }
   /* Install a error handler using exceptions, the default error
    * handler aborts the program under some circumstances. */
@@ -189,7 +195,8 @@ value ocaml_freetds_dbopen(value vuser, value vpasswd, value vchar_set,
   DBPROCESS *dbproc;
 
   if ((login = dblogin()) == NULL) {
-    raise_fatal("Freetds.Dblib.connect: cannot allocate the login structure");
+    raise_error(SEVERITY_FATAL,
+                "Freetds.Dblib.connect: cannot allocate the login structure");
   }
   if (Is_block(vuser)) /* <> None */
     DBSETLUSER(login, String_val(Field(vuser, 0)));
@@ -205,7 +212,8 @@ value ocaml_freetds_dbopen(value vuser, value vpasswd, value vchar_set,
   dbproc = dbopen(login, String_val(vserver));
   dbloginfree(login); /* dbopen made => [login] no longer needed. */
   if (dbproc == NULL) {
-    raise_fatal("Freetds.Dblib.connect: unable to connect to the database");
+    raise_error(SEVERITY_FATAL,
+                "Freetds.Dblib.connect: unable to connect to the database");
   }
   vdbproc = DBPROCESS_ALLOC();
   DBPROCESS_VAL(vdbproc) = dbproc;
@@ -230,7 +238,7 @@ CAMLexport value ocaml_freetds_dbuse(value vdbproc, value vdbname)
 {
   CAMLparam2(vdbproc, vdbname);
   if (dbuse(DBPROCESS_VAL(vdbproc), String_val(vdbname)) == FAIL) {
-    raise_fatal("Freetds.Dblib.use: unable to use the given database");
+    caml_raise_not_found(); /* More precise error on the OCaml side. */
   }
   CAMLreturn(Val_unit);
 }
@@ -256,15 +264,12 @@ CAMLexport value ocaml_freetds_dbsqlexec(value vdbproc, value vsql)
   CAMLparam2(vdbproc, vsql);
 
   if (dbcmd(DBPROCESS_VAL(vdbproc), String_val(vsql)) == FAIL) {
-    raise_fatal("Freetds.Dblib.sqlexec: cannot allocate memory to hold "
-                "the SQL query");
+    raise_error(SEVERITY_RESOURCE, "Freetds.Dblib.sqlexec: cannot "
+                "allocate memory to hold the SQL query");
   }
   /* Sending the query to the server resets the command buffer. */
   if (dbsqlexec(DBPROCESS_VAL(vdbproc)) == FAIL) {
-    raise_fatal("Freetds.Dblib.sqlexec: the SQL query is invalid. It may be "
-                "due to a SQL syntax error, incorrect column or table names, "
-                "or if the previous query results were not completely "
-                "read,...");
+    caml_raise_not_found(); /* More precise error on the OCaml side. */
   }
   CAMLreturn(Val_unit);
 }
@@ -274,7 +279,8 @@ CAMLexport value ocaml_freetds_dbresults(value vdbproc)
   CAMLparam1(vdbproc);
   RETCODE erc;
   if ((erc = dbresults(DBPROCESS_VAL(vdbproc))) == FAIL) {
-    raise_fatal("Freetds.Dblib.results: query was not processed "
+    raise_error(SEVERITY_PROGRAM,
+                "Freetds.Dblib.results: query was not processed "
                 "successfully by the server");
   }
   CAMLreturn(Val_bool(erc == SUCCEED));
@@ -302,8 +308,9 @@ CAMLexport value ocaml_freetds_dbcolname(value vdbproc, value vc)
 CAMLexport value ocaml_freetds_dbcoltype(value vdbproc, value vc)
 {
   CAMLparam2(vdbproc, vc);
+  int ty;
   /* Keep in sync with "type col_type" on the Caml side. */
-  switch (dbcoltype(DBPROCESS_VAL(vdbproc), Int_val(vc))) {
+  switch (ty = dbcoltype(DBPROCESS_VAL(vdbproc), Int_val(vc))) {
   case SYBCHAR:    CAMLreturn(Val_int(0));
   case SYBVARCHAR: CAMLreturn(Val_int(1));
   case SYBINTN: CAMLreturn(Val_int(2));
@@ -328,8 +335,12 @@ CAMLexport value ocaml_freetds_dbcoltype(value vdbproc, value vc)
   case SYBBINARY: CAMLreturn(Val_int(21));
   case SYBVARBINARY: CAMLreturn(Val_int(22));
   }
-  raise_fatal("Freetds.Dblib.coltype: unknown column type"
-              " (contact the author of the OCaml bindings)");
+  if (ty == -1)
+    invalid_argument("FreeTDS.Dblib.coltype: column number out of range");
+  else
+    raise_error(SEVERITY_CONSISTENCY,
+                "Freetds.Dblib.coltype: unknown column type "
+                "(contact the author of the OCaml bindings)");
 }
 
 CAMLexport value ocaml_freetds_dbcancel(value vdbproc)
@@ -364,12 +375,12 @@ CAMLexport value ocaml_freetds_dbnextrow(value vdbproc)
 
   case FAIL:
     /* The handler should be triggered (this should not occur). */
-    raise_fatal("Freetds.Dblib.nextrow: failed");
+    raise_error(SEVERITY_RESOURCE, "Freetds.Dblib.nextrow: failed");
     break;
 
   case BUF_FULL:
-    raise_fatal("Freetds.Dblib.nextrow: buffer full (report to the developer "
-                "of this library)");
+    raise_error(SEVERITY_RESOURCE, "Freetds.Dblib.nextrow: buffer full"
+                " (report to the developer of this library)");
     break;
 
   default:
@@ -420,7 +431,8 @@ CAMLexport value ocaml_freetds_get_data(value vdbproc, value vcol,
     dbconvert(dbproc, ty, data, len, SYBCHAR, data_byte, destlen);      \
   if (converted_len < 0) {                                              \
     free(data_byte);                                                    \
-    raise_fatal("Freetds.Dblib.nextrow: problem with copying strings. " \
+    raise_error(SEVERITY_RESOURCE,                                      \
+                "Freetds.Dblib.nextrow: problem with copying strings. " \
                 "Please contact the author of the Freetds bindings.");  \
   } else {                                                              \
     COPY_STRING(vdata, (char *) data_byte, converted_len);              \
@@ -499,7 +511,8 @@ CAMLexport value ocaml_freetds_get_data(value vdbproc, value vcol,
   case SYBDATETIME4:
   case SYBDATETIMN:
     if (dbdatecrack(dbproc, &di, (DBDATETIME *) data) == FAIL) {
-      raise_fatal("Freetds.Dblib.nextrow: date conversion failed. "
+      raise_error(SEVERITY_CONSISTENCY,
+                  "Freetds.Dblib.nextrow: date conversion failed. "
                   "Please contact the author of these bindings.");
     }
     vconstructor = caml_alloc(/* size: */ 8, /* tag: */ 7);
@@ -536,10 +549,12 @@ CAMLexport value ocaml_freetds_get_data(value vdbproc, value vcol,
 
   default:
     if (ty == -1)
-      raise_fatal("Freetds.Dblib.nextrow: column number not in range. "
+      raise_error(SEVERITY_CONSISTENCY,
+                  "Freetds.Dblib.nextrow: column number not in range. "
                   "Please write to the authors of the OCaml FreeTDS bindings.");
     else
-      raise_fatal("Freetds.Dblib.nextrow: dbcoltype not handled (C stub)\n");
+      raise_error(SEVERITY_CONSISTENCY,
+                  "Freetds.Dblib.nextrow: dbcoltype not handled (C stub)\n");
   }
   CAMLreturn(vconstructor);
 }
@@ -560,7 +575,7 @@ CAMLexport value ocaml_freetds_dbsettime(value vseconds)
   CAMLparam1(vseconds);
   /* http://manuals.sybase.com/onlinebooks/group-cnarc/cng1110e/dblib/@ebt-link;pt=16561?target=%25N%15_39241_START_RESTART_N%25 */
   if (dbsettime(Int_val(vseconds)) == FAIL) {
-    raise_fatal("Freetds.Dblib.settime");
+    raise_error(SEVERITY_PROGRAM, "Freetds.Dblib.settime");
   }
   CAMLreturn(Val_unit);
 }

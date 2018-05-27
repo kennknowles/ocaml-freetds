@@ -124,7 +124,8 @@ val string_of_col_type : col_type -> string
   (** Returns a string description of the column type. *)
 
 val coltype : dbprocess -> int -> col_type
-  (** Get the datatype of a regular result set column.  *)
+  (** Get the datatype of a regular result set column.
+     @raise Invalid_argument if the column does not exists. *)
 
 type data =
   | NULL
