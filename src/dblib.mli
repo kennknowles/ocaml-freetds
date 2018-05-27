@@ -177,7 +177,7 @@ type severity =
   | CONSISTENCY (** Internal software error—please open an issue. *)
 
 exception Error of severity * string
-(** [Error(severity, err, message)] is raised on dblib errors.  You
+(** [Error(severity, message)] is raised on dblib errors.  You
     can change the reaction to some errors by installing your own
     handler with {!err_handler}. *)
 

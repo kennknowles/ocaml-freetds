@@ -30,6 +30,19 @@ type severity =
   | FATAL
   | CONSISTENCY
 
+let pp_severity _ = function
+  | INFO -> "INFO"
+  | USER -> "USER"
+  | NONFATAL -> "NONFATAL"
+  | CONVERSION -> "CONVERSION"
+  | SERVER -> "SERVER"
+  | TIME -> "TIME"
+  | PROGRAM -> "PROGRAM"
+  | RESOURCE -> "RESOURCE"
+  | COMM -> "COMM"
+  | FATAL -> "FATAL"
+  | CONSISTENCY -> "CONSISTENCY"
+
 exception Error of severity * string
 
 let err_handler (f: severity -> int -> string -> unit) =
@@ -54,6 +67,10 @@ external dbinit : unit -> unit = "ocaml_freetds_dbinit"
 let () =
   Callback.register_exception "Freetds.Dblib.Error"
                               (Error(FATAL, "message"));
+  let pp_error = function
+    | Error(s, m) -> Some(sprintf "Error(%a, %S)" pp_severity s m)
+    | _ -> None in
+  Printexc.register_printer pp_error;
   err_handler default_err_handler;
   msg_handler default_msg_handler;
   dbinit()
