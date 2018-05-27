@@ -161,7 +161,50 @@ let string_of_data = function
   | DECIMAL s -> sprintf "DECIMAL(%S)" s
 
 
-external nextrow : dbprocess -> data list = "ocaml_freetds_dbnextrow"
+external dbnextrow : dbprocess -> int = "ocaml_freetds_dbnextrow" [@@noalloc]
+(* Return the ID of computed queries or %%REG_ROW%% (value extracted
+   by discover.ml) for a regular result.
+   Raises [Not_found] if NO_MORE_ROWS. *)
+
+external dbdata : dbprocess -> col:int -> data_ptr
+  = "ocaml_freetds_dbdata" [@@noalloc]
+(* Note that [data_ptr] is a pointer to the data. *)
+
+external is_null : data_ptr -> bool = "ocaml_freetds_is_null" [@@noalloc]
+
+external dbdatlen : dbprocess -> col:int -> int
+  = "ocaml_freetds_dbdatlen" [@@noalloc]
+
+external dbdata : dbprocess -> col:int -> data_ptr -> data
+  = "ocaml_freetds_dbdata"
+(* Beware that [data_ptr] must be those associated with [col]. *)
+
+let nextrow db =
+  let status = dbnextrow db in
+  if status = %%REG_ROW%% then (
+    let row = ref [] in
+    for c = numcols db downto 1 do
+      let data_ptr = dbdata db ~col:c in
+      let len = dbdatlen db ~col:c in
+      if len < 0 then
+        let msg = sprintf "FreeTDS.Dblib.nextrow: column %d does not exist. \
+                           Contact the OCaml FreeTDS developers." c in
+        raise(Error(FATAL, msg))
+      else if is_null data_ptr then
+        if len = 0 then NULL
+        else
+          let msg = sprintf "Freetds.Dlib.nextrow: column %d has a length \
+                             of %d but no data is returned." c len in
+          raise(Error(FATAL, msg))
+      else
+        row := dbdata db data_ptr ~len :: !row
+    done;
+    !row
+  )
+  else
+    (* [status] = ID of computed row *)
+    failwith "Computed rows are not handled at the moment.  Please write \
+              to the developers of the OCaml FreeTDS."
 
 external count : dbprocess -> int = "ocaml_freetds_dbcount"
 

@@ -349,171 +349,13 @@ CAMLexport value ocaml_freetds_dbcanquery(value vdbproc)
 
 CAMLexport value ocaml_freetds_dbnextrow(value vdbproc)
 {
-  CAMLparam1(vdbproc);
-  CAMLlocal4(vrow, vdata, vconstructor, vcons);
+  /* noalloc */
   DBPROCESS *dbproc = DBPROCESS_VAL(vdbproc);
-  int c, ty, converted_len;
-  BYTE *data;
-  DBINT len;
-  int data_int;
-  char *data_char;
-  double data_double;
-  DBDATEREC di;
+  STATUS st;
 
-/* Taken from the implementation of caml_copy_string */
-#define COPY_STRING(res, s, len_bytes)           \
-  res = caml_alloc_string(len_bytes);                  \
-  memmove(String_val(res), s, len_bytes);
-
-#define CONVERT_STRING(destlen)                                         \
-  data_char = malloc(destlen); /* printable size */                     \
-  converted_len =                                                       \
-    dbconvert(dbproc, ty, data, len,  SYBCHAR, (BYTE*) data_char, destlen); \
-  if (converted_len < 0) {                                              \
-    free(data_char);                                                    \
-    raise_fatal("Freetds.Dblib.nextrow: problem with copying strings. " \
-                "Please contact the author of the Freetds bindings.");  \
-  } else {                                                              \
-    COPY_STRING(vdata, data_char, converted_len);                       \
-    free(data_char);                                                    \
-  }
-
-#define CONSTRUCTOR(tag, value)        \
-  vconstructor = caml_alloc(1, tag);   \
-  Store_field(vconstructor, 0, value)
-
-  switch (dbnextrow(dbproc)) {
+  switch (st = dbnextrow(dbproc)) {
   case REG_ROW:
-    vrow = Val_int(0); /* empty list [] */
-    for (c = dbnumcols(dbproc); c >= 1; c--) {
-      data = dbdata(dbproc, c); /* pointer to the data, no copy! */
-      len = dbdatlen(dbproc, c); /* length, in bytes, of the data for
-                                    a column. */
-      if (len == -1) {
-        raise_fatal("FreeTDS.Dblib.nextrow: dbnumcols doesn't match actual " \
-                    "number of columns");
-      } if (data == NULL) {
-        if (len == 0) {
-          vconstructor = Val_int(0); /* constant constructor NULL */
-        } else {
-          raise_fatal("Freetds.Dlib.nextrow: internal error, received NULL " \
-                      "data but non-zero data length");
-        }
-      } else {
-        switch (ty = dbcoltype(dbproc, c)) {
-        case SYBCHAR:    /* fall-through */
-        case SYBVARCHAR:
-        case SYBTEXT:
-          COPY_STRING(vdata, data, len);
-          CONSTRUCTOR(0, vdata);
-          break;
-        case SYBIMAGE:
-        case SYBBINARY:
-        case SYBVARBINARY:
-          COPY_STRING(vdata, data, len);
-          CONSTRUCTOR(10, vdata);
-          break;
-
-        case SYBINT1:
-          dbconvert(dbproc, ty, data, len,
-                    SYBINT4, (BYTE*) &data_int, sizeof(int));
-          CONSTRUCTOR(1, Val_int(data_int));
-          break;
-        case SYBINT2:
-          dbconvert(dbproc, ty, data, len,
-                    SYBINT4, (BYTE*) &data_int, sizeof(int));
-          CONSTRUCTOR(2, Val_int(data_int));
-          break;
-        case SYBINTN:
-        case SYBINT4:
-          data_int = *((int *) data);
-#if OCAML_WORD_SIZE == 32
-          if (-1073741824 <= data_int && data_int < 1073741824)
-            CONSTRUCTOR(3, Val_int(data_int));
-          else /* require more than 31 bits allow for */
-            CONSTRUCTOR(4, caml_copy_int32(data_int));
-#else
-          CONSTRUCTOR(3, Val_int(data_int));
-#endif
-          break;
-        case SYBINT8:
-          CONVERT_STRING(21);
-          CONSTRUCTOR(5, vdata);
-          break;
-
-        case SYBFLT8:
-          CONSTRUCTOR(6, caml_copy_double(* (double *) data));
-          break;
-        case SYBFLTN:
-        case SYBREAL:
-          dbconvert(dbproc, ty, data, len,  SYBFLT8,
-                    (BYTE*) &data_double, sizeof(double));
-          CONSTRUCTOR(6, caml_copy_double(data_double));
-          break;
-
-        case SYBNUMERIC:
-          CONVERT_STRING(ceil(2.5 * len)); /* FIXME: max size ? */
-          CONSTRUCTOR(11, vdata);
-          break;
-        case SYBDECIMAL:
-          CONVERT_STRING(ceil(2.5 * len)); /* FIXME: max size ? */
-          CONSTRUCTOR(12, vdata);
-          break;
-
-        case SYBBIT:
-          CONSTRUCTOR(9, Val_bool(*data != '\0'));
-          break;
-
-        case SYBDATETIME:
-        case SYBDATETIME4:
-        case SYBDATETIMN:
-          if (dbdatecrack(dbproc, &di, (DBDATETIME *) data) == FAIL) {
-            raise_fatal("Freetds.Dblib.nextrow: date conversion failed. "
-                        "Please contact the author of these bindings.");
-          }
-          vconstructor = caml_alloc(/* size: */ 8, /* tag: */ 7);
-#ifdef MSDBLIB
-         /* http://msdn.microsoft.com/en-us/library/aa937027%28SQL.80%29.aspx */
-          Store_field(vconstructor, 0, Val_int(di.year));
-          Store_field(vconstructor, 1, Val_int(di.month));
-          Store_field(vconstructor, 2, Val_int(di.day));
-          Store_field(vconstructor, 3, Val_int(di.hour));
-          Store_field(vconstructor, 4, Val_int(di.minute));
-          Store_field(vconstructor, 5, Val_int(di.second));
-          Store_field(vconstructor, 6, Val_int(di.millisecond));
-          Store_field(vconstructor, 7, Val_int(di.tzone));
-#else
-          /* From sybdb.h */
-          Store_field(vconstructor, 0, Val_int(di.dateyear));
-          Store_field(vconstructor, 1, Val_int(di.datemonth));
-          Store_field(vconstructor, 2, Val_int(di.datedmonth));
-          Store_field(vconstructor, 3, Val_int(di.datehour));
-          Store_field(vconstructor, 4, Val_int(di.dateminute));
-          Store_field(vconstructor, 5, Val_int(di.datesecond));
-          Store_field(vconstructor, 6, Val_int(di.datemsecond));
-          Store_field(vconstructor, 7, Val_int(di.datetzone));
-#endif
-          break;
-
-        case SYBMONEY4:
-        case SYBMONEY:
-        case SYBMONEYN:
-          dbconvert(dbproc, ty, data, len,  SYBFLT8,
-                    (BYTE*) &data_double, sizeof(double));
-          CONSTRUCTOR(8, caml_copy_double(data_double));
-          break;
-
-        default:
-          raise_fatal("Freetds.Dblib.nextrow: dbcoltype not handled (C stub)\n");
-        }
-      }
-      /* Place the data in front of the list [vrow]. */
-      vcons = alloc_tuple(2);
-      Store_field(vcons, 0, vconstructor);
-      Store_field(vcons, 1, vrow);
-      vrow = vcons;
-    }
-    CAMLreturn(vrow);
+    return(Val_int(st));
     break;
 
   case NO_MORE_ROWS:
@@ -531,9 +373,176 @@ CAMLexport value ocaml_freetds_dbnextrow(value vdbproc)
     break;
 
   default:
-    /* FIXME: compute rows are ignored */
-    CAMLreturn(Val_int(0)); /* row = [] */
+    return(Val_int(st));
   }
+}
+
+
+CAMLexport value ocaml_freetds_dbdata(value vdbproc, value vc)
+{
+  /* noalloc */
+  return((value) dbdata(DBPROCESS_VAL(dbproc), Int_val(vc)));
+}
+
+CAMLexport value ocaml_freetds_is_null(value data_ptr)
+{
+  /* noalloc */
+  return(Val_bool((BYTE *) data_prt == NULL));
+}
+
+CAMLexport value ocaml_freetds_dbdatlen(value vdbproc, value vc)
+{
+  /* noalloc */
+  return(Val_int(dbdatlen(DBPROCESS_VAL(dbproc), Int_val(vc))));
+}
+
+
+CAMLexport value ocaml_freetds_dbdata(value vdbproc, value vcol,
+                                      value vdata)
+{
+  CAMLparam3(vdbproc, vcol, vdata);
+  CAMLlocal2(vdata, vconstructor);
+  DBPROCESS *dbproc = DBPROCESS_VAL(vdbproc);
+  BYTE *data = (BYTE *) vdata, *data_byte;
+  DBINT len, converted_len;
+  int col = Int_val(vcol), ty, data_int;
+  double data_double;
+  DBDATEREC di;
+
+/* Taken from the implementation of caml_copy_string */
+#define COPY_STRING(res, s, len_bytes)           \
+  res = caml_alloc_string(len_bytes);                  \
+  memmove(String_val(res), s, len_bytes);
+
+#define CONVERT_STRING(destlen)                                         \
+  data_byte = malloc(destlen); /* printable size */                     \
+  converted_len =                                                       \
+    dbconvert(dbproc, ty, data, len, SYBCHAR, data_byte, destlen);      \
+  if (converted_len < 0) {                                              \
+    free(data_byte);                                                    \
+    raise_fatal("Freetds.Dblib.nextrow: problem with copying strings. " \
+                "Please contact the author of the Freetds bindings.");  \
+  } else {                                                              \
+    COPY_STRING(vdata, (char *) data_byte, converted_len);              \
+    free(data_byte);                                                    \
+  }
+
+#define CONSTRUCTOR(tag, value)        \
+  vconstructor = caml_alloc(1, tag);   \
+  Store_field(vconstructor, 0, value)
+
+  len = dbdatlen(dbproc, col);
+  switch (ty = dbcoltype(dbproc, col)) {
+  case SYBCHAR:    /* fall-through */
+  case SYBVARCHAR:
+  case SYBTEXT:
+    COPY_STRING(vdata, data, len);
+    CONSTRUCTOR(0, vdata);
+    break;
+  case SYBIMAGE:
+  case SYBBINARY:
+  case SYBVARBINARY:
+    COPY_STRING(vdata, data, len);
+    CONSTRUCTOR(10, vdata);
+    break;
+
+  case SYBINT1:
+    dbconvert(dbproc, ty, data, len,
+              SYBINT4, (BYTE*) &data_int, sizeof(int));
+    CONSTRUCTOR(1, Val_int(data_int));
+    break;
+  case SYBINT2:
+    dbconvert(dbproc, ty, data, len,
+              SYBINT4, (BYTE*) &data_int, sizeof(int));
+    CONSTRUCTOR(2, Val_int(data_int));
+    break;
+  case SYBINTN:
+  case SYBINT4:
+    data_int = *((int *) data);
+#if OCAML_WORD_SIZE == 32
+    if (-1073741824 <= data_int && data_int < 1073741824)
+      CONSTRUCTOR(3, Val_int(data_int));
+    else /* require more than 31 bits allow for */
+      CONSTRUCTOR(4, caml_copy_int32(data_int));
+#else
+    CONSTRUCTOR(3, Val_int(data_int));
+#endif
+    break;
+  case SYBINT8:
+    CONVERT_STRING(21);
+    CONSTRUCTOR(5, vdata);
+    break;
+
+  case SYBFLT8:
+    CONSTRUCTOR(6, caml_copy_double(* (double *) data));
+    break;
+  case SYBFLTN:
+  case SYBREAL:
+    dbconvert(dbproc, ty, data, len,
+              SYBFLT8, (BYTE*) &data_double, sizeof(double));
+    CONSTRUCTOR(6, caml_copy_double(data_double));
+    break;
+
+  case SYBNUMERIC:
+    CONVERT_STRING(ceil(2.5 * len)); /* FIXME: max size ? */
+    CONSTRUCTOR(11, vdata);
+    break;
+  case SYBDECIMAL:
+    CONVERT_STRING(ceil(2.5 * len)); /* FIXME: max size ? */
+    CONSTRUCTOR(12, vdata);
+    break;
+
+  case SYBBIT:
+    CONSTRUCTOR(9, Val_bool(*data != '\0'));
+    break;
+
+  case SYBDATETIME:
+  case SYBDATETIME4:
+  case SYBDATETIMN:
+    if (dbdatecrack(dbproc, &di, (DBDATETIME *) data) == FAIL) {
+      raise_fatal("Freetds.Dblib.nextrow: date conversion failed. "
+                  "Please contact the author of these bindings.");
+    }
+    vconstructor = caml_alloc(/* size: */ 8, /* tag: */ 7);
+#ifdef MSDBLIB
+    /* http://msdn.microsoft.com/en-us/library/aa937027%28SQL.80%29.aspx */
+    Store_field(vconstructor, 0, Val_int(di.year));
+    Store_field(vconstructor, 1, Val_int(di.month));
+    Store_field(vconstructor, 2, Val_int(di.day));
+    Store_field(vconstructor, 3, Val_int(di.hour));
+    Store_field(vconstructor, 4, Val_int(di.minute));
+    Store_field(vconstructor, 5, Val_int(di.second));
+    Store_field(vconstructor, 6, Val_int(di.millisecond));
+    Store_field(vconstructor, 7, Val_int(di.tzone));
+#else
+    /* From sybdb.h */
+    Store_field(vconstructor, 0, Val_int(di.dateyear));
+    Store_field(vconstructor, 1, Val_int(di.datemonth));
+    Store_field(vconstructor, 2, Val_int(di.datedmonth));
+    Store_field(vconstructor, 3, Val_int(di.datehour));
+    Store_field(vconstructor, 4, Val_int(di.dateminute));
+    Store_field(vconstructor, 5, Val_int(di.datesecond));
+    Store_field(vconstructor, 6, Val_int(di.datemsecond));
+    Store_field(vconstructor, 7, Val_int(di.datetzone));
+#endif
+    break;
+
+  case SYBMONEY4:
+  case SYBMONEY:
+  case SYBMONEYN:
+    dbconvert(dbproc, ty, data, len,
+              SYBFLT8, (BYTE*) &data_double, sizeof(double));
+    CONSTRUCTOR(8, caml_copy_double(data_double));
+    break;
+
+  default:
+    if (ty == -1)
+      raise_fatal("Freetds.Dblib.nextrow: column number not in range. "
+                  "Please write to the authors of the OCaml FreeTDS bindings.");
+    else
+      raise_fatal("Freetds.Dblib.nextrow: dbcoltype not handled (C stub)\n");
+  }
+  CAMLreturn(vconstructor);
 }
 
 
