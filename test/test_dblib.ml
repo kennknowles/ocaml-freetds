@@ -48,12 +48,18 @@ let test_basic_query params _ =
       |> assert_equal ~printer:string_of_string "test";
       Dblib.coltype conn 1
       |> assert_equal ~printer:Dblib.string_of_col_type Dblib.SYBINT4;
-      assert_raises
-        (Dblib.Error (Dblib.PROGRAM, "Column number out of range"))
-        (fun () -> Dblib.coltype conn 2);
-      assert_raises
-        (Dblib.Error (Dblib.PROGRAM, "Column number out of range"))
-        (fun () -> Dblib.colname conn 2);
+      (try
+         ignore(Dblib.coltype conn 2);
+         assert_failure "Dblib.coltype should signal '2' is not a valid column"
+       with Dblib.Error(Dblib.PROGRAM, _) -> ()
+          | e -> assert_failure("Dblib.coltype should raise Error(PROGRAM, _) \
+                                 instead of " ^ Printexc.to_string e));
+      (try
+         ignore(Dblib.colname conn 2);
+         assert_failure "Dblib.colname should signal '2' is not a valid column"
+       with Dblib.Error(Dblib.PROGRAM, _) -> ()
+          | e -> assert_failure("Dblib.colname should raise Error(PROGRAM, _) \
+                                 instead of " ^ Printexc.to_string e));
       Dblib.nextrow conn
       |> assert_equal ~printer:(string_of_list Dblib.string_of_data)
         [ Dblib.INT 1 ];

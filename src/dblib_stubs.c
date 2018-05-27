@@ -299,7 +299,9 @@ CAMLexport value ocaml_freetds_dbcolname(value vdbproc, value vc)
   char *name;
   name = dbcolname(DBPROCESS_VAL(vdbproc), Int_val(vc));
   if (name == NULL)
-    invalid_argument("FreeTDS.Dblib.colname: column number out of range");
+    /* Raise an exception compatible with [coltype]. */
+    raise_error(SEVERITY_PROGRAM,
+                "FreeTDS.Dblib.colname: Column number out of range");
   vname = caml_copy_string(name);
   /* free(name); */ /* Doing it says "invalid pointer". */
   CAMLreturn(vname);
@@ -336,7 +338,9 @@ CAMLexport value ocaml_freetds_dbcoltype(value vdbproc, value vc)
   case SYBVARBINARY: CAMLreturn(Val_int(22));
   }
   if (ty == -1)
-    invalid_argument("FreeTDS.Dblib.coltype: column number out of range");
+    /* The handler catches this exception.  Raise a compatible one. */
+    raise_error(SEVERITY_PROGRAM,
+                "FreeTDS.Dblib.coltype: Column number out of range");
   else
     raise_error(SEVERITY_CONSISTENCY,
                 "Freetds.Dblib.coltype: unknown column type "
