@@ -469,8 +469,7 @@ CAMLexport value ocaml_freetds_get_data(value vdbproc, value vcol,
 #endif
     break;
   case SYBINT8:
-    CONVERT_STRING(21);
-    CONSTRUCTOR(5, vdata);
+    CONSTRUCTOR(5, caml_copy_int64(* (int64_t *) data));
     break;
 
   case SYBFLT8:

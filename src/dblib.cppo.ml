@@ -134,7 +134,7 @@ type data =
   | SMALL of int
   | INT of int
   | INT32 of int32
-  | INT64 of string (* FIXME: do better *)
+  | INT64 of int64
   | FLOAT of float                      (* tag = 6 *)
   | DATETIME of int * int * int * int * int * int * int * int
   | MONEY of float
@@ -150,7 +150,7 @@ let string_of_data = function
   | SMALL i -> sprintf "SMALL(%i)" i
   | INT i -> sprintf "INT(%i)" i
   | INT32 i -> sprintf "INT32(%li)" i
-  | INT64 i -> sprintf "INT64(%s)" i
+  | INT64 i -> sprintf "INT64(%Li)" i
   | FLOAT f -> sprintf "FLOAT(%f)" f
   | DATETIME(y, mo, day, h, m, s, _, _) ->
       sprintf "DATETIME(%i/%i/%i %i:%02i:%02i)" y mo day h m s

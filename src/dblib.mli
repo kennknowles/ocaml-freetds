@@ -133,7 +133,7 @@ type data =
   | SMALL of int
   | INT of int
   | INT32 of int32
-  | INT64 of string
+  | INT64 of int64
   | FLOAT of float
   | DATETIME of int * int * int * int * int * int * int * int
       (** (year, month, day, hour, minute, second, millisecond, zone) *)
