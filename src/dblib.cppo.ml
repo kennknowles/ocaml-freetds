@@ -106,12 +106,17 @@ external dbsqlexec : dbprocess -> string -> unit = "ocaml_freetds_dbsqlexec"
 
 let sqlexec db sql =
   try dbsqlexec db sql
-  with Not_found ->
-    let msg = sprintf "Freetds.Dblib.sqlexec: the SQL query %S is invalid. \
-                       It may be due to a SQL syntax error, incorrect column \
-                       or table names, or if the previous query results were \
-                       not completely read,..." sql in
-    raise (Error(PROGRAM, msg))
+  with
+  | Not_found ->
+     let msg = sprintf "Freetds.Dblib.sqlexec: the SQL query %S is invalid. \
+                        It may be due to a SQL syntax error, incorrect column \
+                        or table names, or if the previous query results were \
+                        not completely read,..." sql in
+     raise (Error(PROGRAM, msg))
+  | Error(severity, msg) -> (* The handler may raise exceptions. *)
+     let msg = sprintf "Freetds.Dblib.sqlexec: the SQL query %S generated \
+                        the error %S" sql msg in
+     raise(Error(severity, msg))
 
 external cancel :  dbprocess -> unit = "ocaml_freetds_dbcancel"
 external canquery :  dbprocess -> unit = "ocaml_freetds_dbcanquery"
