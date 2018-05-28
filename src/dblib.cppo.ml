@@ -62,9 +62,11 @@ let default_msg_handler severity line msg =
   | INFO | USER | NONFATAL | CONVERSION | SERVER | TIME | PROGRAM
     | RESOURCE | COMM -> ()
 
-external dbinit : unit -> unit = "ocaml_freetds_dbinit"
+type version = V42 | V46 | V70 | V71 | V72 | V73 | V74
 
-let () =
+external dbinit : version -> unit = "ocaml_freetds_dbinit"
+
+let init version =
   Callback.register_exception "Freetds.Dblib.Error"
                               (Error(FATAL, "message"));
   let pp_error = function
@@ -73,14 +75,12 @@ let () =
   Printexc.register_printer pp_error;
   err_handler default_err_handler;
   msg_handler default_msg_handler;
-  dbinit()
+  dbinit version
   (* One must call this function before trying to use db-lib in any
      way.  Allocates various internal structures and reads
      locales.conf (if any) to determine the default date format.  *)
 
-type version = V42 | V46 | V70 | V71 | V72 | V73 | V74
-
-external set_version : version -> unit = "ocaml_freetds_setversion"
+let is_initialized = ref false
 
 type dbprocess
 
@@ -92,7 +92,7 @@ external dbopen :
 
 let connect ?user ?password ?charset ?language ?application ?(version=V70)
       server =
-  set_version version;
+  if not !is_initialized then init version;
   dbopen ~user ~password ~charset ~language ~application ~server
 
 external close : dbprocess -> unit = "ocaml_freetds_dbclose"

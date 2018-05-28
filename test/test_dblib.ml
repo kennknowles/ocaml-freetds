@@ -112,7 +112,7 @@ let test_data params _ =
       Dblib.nextrow conn
       |> assert_equal ~printer:string_of_row
            Dblib.([STRING "a"; STRING "a         "; STRING "abc";
-                   INT 1; FLOAT 4.3])
+                   INT 1; FLOAT 3.4])
     )
 
 let test_insert params _ =

@@ -140,9 +140,11 @@ static int err_handler(DBPROCESS *dbproc, int severity, /* in syberror.h */
 }
 
 
-CAMLexport value ocaml_freetds_dbinit(value unit)
+CAMLexport value ocaml_freetds_dbinit(value vversion)
 {
-  CAMLparam0();
+  CAMLparam1(vversion);
+  DBINT version;
+
   if (dbinit() == FAIL) {
     raise_error(SEVERITY_FATAL, "Cannot initialize DB-lib!");
   }
@@ -150,13 +152,7 @@ CAMLexport value ocaml_freetds_dbinit(value unit)
    * handler aborts the program under some circumstances. */
   dberrhandle(&err_handler);
   dbmsghandle(&msg_handler);
-  CAMLreturn(Val_unit);
-}
-
-CAMLexport value ocaml_freetds_setversion(value vversion)
-{
-  DBINT version;
-
+  /* Set version */
   /* Keep in sync with the def. of OCaml [version] type. */
   switch (Int_val(vversion)) {
   case 0: version = DBVERSION_42; break;
@@ -171,11 +167,11 @@ CAMLexport value ocaml_freetds_setversion(value vversion)
                 "Version not in sync with the OCaml definition");
   }
   if (dbsetversion(version) == FAIL) {
-    raise_error(SEVERITY_FATAL, "Freetds.Dblib.connect: could not set version");
+    raise_error(SEVERITY_PROGRAM,
+                "Freetds.Dblib.connect: could not set version");
   }
-  return(Val_unit);
+  CAMLreturn(Val_unit);
 }
-
 
 
 #define DBPROCESS_VAL(v) (* (DBPROCESS **) Data_custom_val(v))
