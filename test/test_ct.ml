@@ -95,7 +95,7 @@ let test_empty_strings params _ =
                     CAST(NULL AS VARCHAR(1)) AS nvc,
                     CAST(NULL AS TEXT) AS ntxt,
                     CAST(NULL AS VARBINARY(10)) AS nvb" in
-      assert_equal [ [`String ""; `Text ""; `Binary ""; `Null; `Null; `Null] ]
+      assert_equal [ [`String ""; `String ""; `Binary ""; `Null; `Null; `Null] ]
         rows ~printer:string_of_rows
     )
 
