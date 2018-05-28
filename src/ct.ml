@@ -17,26 +17,8 @@
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-(** A wrapper on the FreeTDS library for accessing Sybase and Microsoft database providers *)
-
-type location =
-        [
-        | `Server
-        | `Client
-        ]
-
-
-type severity =
-        [
-        | `Inform
-        | `Api_fail
-        | `Retry_fail
-        | `Resource_fail
-        | `Config_fail
-        | `Comm_fail
-        | `Internal_fail
-        | `Fatal
-        ]
+(** A wrapper on the FreeTDS library for accessing Sybase and
+   Microsoft database providers. *)
 
 (* This is the catch-all exception that client code should trap *)
 exception End_results
@@ -154,8 +136,26 @@ let bind comm ?(maxlen = 256) index = bind_col comm ~maxlen index
 external close_con : connection -> bool -> unit = "mltds_ct_close"
 let close ?(force = false) conn = close_con conn force
 
-(* Error handling - but ct_diag not yet implemented *)
-external get_messages : connection -> location list -> (severity * string) list
-    = "mltds_get_messages"
+type severity =
+  | Inform
+  | Api_fail
+  | Retry_fail
+  | Resource_fail
+  | Comm_fail
+  | Internal_fail
+  | Fatal
 
-(* Other deallocation is done by the GC *)
+(* Error handling - but ct_diag not yet implemented *)
+external add_messages_client :
+  connection -> (severity * string) list -> (severity * string) list
+  = "mltds_add_messages_client"
+
+external add_messages_server :
+  connection -> (severity * string) list -> (severity * string) list
+  = "mltds_add_messages_server"
+
+let get_messages ?(client=false) ?(server=false) conn =
+  let l = if client then add_messages_client conn [] else [] in
+  if server then add_messages_server conn l else l
+
+;;

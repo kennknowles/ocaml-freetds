@@ -33,12 +33,12 @@ let debug_print s =
 
 let raise_messages conn =
   List.iter (fun (sev, err) ->
-      if sev <> `Inform then printf "Client: %s\n" err)
-    (get_messages conn [`Client]);
+      if sev <> Inform then printf "Client: %s\n" err)
+    (get_messages conn ~client:true);
 
   List.iter (fun (sev, err) ->
-      if sev <> `Inform then printf "Server: %s\n" err)
-    (get_messages conn [`Server])
+      if sev <> Inform then printf "Server: %s\n" err)
+    (get_messages conn ~server:true)
 
 let () =
   Arg.parse [

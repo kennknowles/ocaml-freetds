@@ -28,11 +28,11 @@ exception Datatype_not_implemented
     a sql_t *)
 type binding_buffer
 
-(** CS_CONTEXT *)
 type context
+(** Identifies the Client-Library context being initialized. *)
 
-(** CS_CONNECTION *)
 type connection
+(** Contains information about a particular client/server connection. *)
 
 (** CS_COMMAND *)
 type command
@@ -66,26 +66,6 @@ type column = {
     col_status : status list;
     col_buffer : binding_buffer;
 }
-
-(** Types for fetching / inspecting errors *)
-type location =
-        [
-        | `Server
-        | `Client
-        ]
-
-
-type severity =
-        [
-        | `Inform
-        | `Api_fail
-        | `Retry_fail
-        | `Resource_fail
-        | `Config_fail
-        | `Comm_fail
-        | `Internal_fail
-        | `Fatal
-        ]
 
 type sql_t =
 [
@@ -139,5 +119,17 @@ val bind : command -> ?maxlen:int -> int -> column
 external buffer_contents : binding_buffer -> sql_t
     = "mltds_buffer_contents"
 
-external get_messages : connection -> location list -> (severity * string) list
-    = "mltds_get_messages"
+
+(** {4 Inline error handling} *)
+
+type severity =
+  | Inform
+  | Api_fail
+  | Retry_fail
+  | Resource_fail
+  | Comm_fail
+  | Internal_fail
+  | Fatal
+
+val get_messages :
+  ?client: bool -> ?server: bool -> connection -> (severity * string) list

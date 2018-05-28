@@ -204,24 +204,6 @@ value value_of_datatype(int datatype)
     CAMLreturn(hash_variant("Illegal"));
 }
 
-
-value value_of_severity(CS_INT severity)
-{
-    CAMLparam0();
-
-    switch(severity)
-    {
-    case CS_SV_INFORM:      CAMLreturn(hash_variant("Inform"));
-    case CS_SV_API_FAIL:    CAMLreturn(hash_variant("Api_fail"));
-    case CS_SV_RETRY_FAIL:     CAMLreturn(hash_variant("Retry_fail"));
-    case CS_SV_RESOURCE_FAIL:  CAMLreturn(hash_variant("Resource_fail"));
-    case CS_SV_COMM_FAIL:      CAMLreturn(hash_variant("Comm_fail"));
-    case CS_SV_INTERNAL_FAIL:  CAMLreturn(hash_variant("Internal_fail"));
-    /* CS_SV_FATAL */
-    default:          CAMLreturn(hash_variant("Fatal"));
-    }
-}
-
 /* TODO: inspect the option variant or something,
    or write a wrapper that returns CS_UNUSED
    CS_INT cmdoption_of_value(value cmdoption)
@@ -271,7 +253,7 @@ value resinfo_type_of_value(value resinfo)
 }
 
 
-value cons(value val1, value val2)
+static value cons(value val1, value val2)
 {
     CAMLparam2(val1,val2);
     CAMLlocal1(result);
@@ -731,13 +713,32 @@ CAMLprim value mltds_ct_close( value conn, value force )
 }
 
 
-CAMLprim value get_client_message(CS_CONNECTION* conn, CS_INT msgno)
+/* Keep in sync with the OCaml definition of [severity]. */
+value value_of_severity(CS_INT severity)
+{
+    CAMLparam0();
+
+    switch(severity)
+    {
+    case CS_SV_INFORM:        CAMLreturn(Int_val(0));
+    case CS_SV_API_FAIL:      CAMLreturn(Int_val(1));
+    case CS_SV_RETRY_FAIL:    CAMLreturn(Int_val(2));
+    case CS_SV_RESOURCE_FAIL: CAMLreturn(Int_val(3));
+    case CS_SV_COMM_FAIL:     CAMLreturn(Int_val(4));
+    case CS_SV_INTERNAL_FAIL: CAMLreturn(Int_val(5));
+    /* CS_SV_FATAL */
+    default:                  CAMLreturn(Int_val(6));
+    }
+}
+
+static value get_client_message(CS_CONNECTION* conn, CS_INT msgno)
 {
     CAMLparam0();
     CAMLlocal2(result,str);
     CS_CLIENTMSG msg;
 
-    retval_inspect( "ct_diag", ct_diag(conn, CS_GET, CS_CLIENTMSG_TYPE, msgno, &msg) );
+    retval_inspect(
+      "ct_diag", ct_diag(conn, CS_GET, CS_CLIENTMSG_TYPE, msgno, &msg) );
 
     /*str = caml_copy_string(msgtext);*/
     str = alloc_string(msg.msgstringlen);
@@ -750,13 +751,14 @@ CAMLprim value get_client_message(CS_CONNECTION* conn, CS_INT msgno)
     CAMLreturn(result);
 }
 
-CAMLprim value get_server_message(CS_CONNECTION* conn, CS_INT msgno)
+static value get_server_message(CS_CONNECTION* conn, CS_INT msgno)
 {
     CAMLparam0();
     CAMLlocal2(result,str);
     CS_SERVERMSG msg;
 
-    retval_inspect( "ct_diag", ct_diag(conn, CS_GET, CS_SERVERMSG_TYPE, msgno, &msg) );
+    retval_inspect(
+      "ct_diag", ct_diag(conn, CS_GET, CS_SERVERMSG_TYPE, msgno, &msg) );
 
     /*str = caml_copy_string(msgtext);*/
     str = alloc_string(strnlen(msg.text, CS_MAX_MSG) + 1);
@@ -770,54 +772,45 @@ CAMLprim value get_server_message(CS_CONNECTION* conn, CS_INT msgno)
 }
 
 
-int list_mem(value locations, value target)
+CAMLexport value mltds_add_messages_client(value vconnection, value vlist)
 {
-    CAMLparam2(locations, target);
+  CAMLparam2(vconnection, vlist);
+  CS_CONNECTION* conn = connection_ptr(vconnection);
+  CS_INT msgcount;
+  CS_INT msgno;
     
-    if ( locations == Val_emptylist )
-        CAMLreturn(0);
-    else if ( car(locations) ==  target )
-        CAMLreturn(1);
-    else
-        CAMLreturn(list_mem(cdr(locations), target));
+  retval_inspect(
+    "ct_diag",
+    ct_diag(conn, CS_STATUS, CS_CLIENTMSG_TYPE, CS_UNUSED, &msgcount));
+
+  for(msgno = msgcount; msgno > 0; msgno--)
+    vlist = cons(get_client_message(conn, msgno), vlist);
+
+  retval_inspect(
+    "ct_diag",
+    ct_diag(conn, CS_CLEAR, CS_CLIENTMSG_TYPE, CS_UNUSED, NULL));
+  CAMLreturn(vlist);
 }
 
-
-CAMLprim value mltds_get_messages( value connection, value locations )
+CAMLexport value mltds_add_messages_server(value vconnection, value vlist)
 {
-    CAMLparam2(connection, locations);
-    CAMLlocal2(result, str);
-    CS_CONNECTION* conn = connection_ptr(connection);
-    CS_INT msgcount;
-    CS_INT msgno = 1;
-    
-    result = Val_emptylist;
+  CAMLparam2(vconnection, vlist);
+  CS_CONNECTION* conn = connection_ptr(vconnection);
+  CS_INT msgcount;
+  CS_INT msgno;
 
-    if ( list_mem(locations, hash_variant("Client")) )
-    {
-        retval_inspect( "ct_diag", 
-                        ct_diag(conn, CS_STATUS, CS_CLIENTMSG_TYPE, CS_UNUSED, &msgcount) );
-        
-        for(msgno = msgcount; msgno > 0; msgno--)
-            result = cons(get_client_message(conn, msgno), result);
-        
-        retval_inspect( "ct_diag",
-                        ct_diag(conn, CS_CLEAR, CS_CLIENTMSG_TYPE, CS_UNUSED, NULL) );
-    }
+  retval_inspect(
+    "ct_diag",
+    ct_diag(conn, CS_STATUS, CS_SERVERMSG_TYPE, CS_UNUSED, &msgcount) );
 
-    if ( list_mem(locations, hash_variant("Server")) )
-    {
-        retval_inspect( "ct_diag", 
-                        ct_diag(conn, CS_STATUS, CS_SERVERMSG_TYPE, CS_UNUSED, &msgcount) );
+  for(msgno = msgcount; msgno > 0; msgno--)
+    vlist = cons(get_server_message(conn, msgno), vlist);
         
-        for(msgno = msgcount; msgno > 0; msgno--)
-            result = cons(get_server_message(conn, msgno), result);
-        
-        retval_inspect( "ct_diag",
-                        ct_diag(conn, CS_CLEAR, CS_SERVERMSG_TYPE, CS_UNUSED, NULL) );
-    }
+  retval_inspect(
+    "ct_diag",
+    ct_diag(conn, CS_CLEAR, CS_SERVERMSG_TYPE, CS_UNUSED, NULL) );
 
-    CAMLreturn(result);
+  CAMLreturn(vlist);
 }
 
 /*** Deallocation ***/
