@@ -150,9 +150,33 @@ CAMLexport value ocaml_freetds_dbinit(value unit)
    * handler aborts the program under some circumstances. */
   dberrhandle(&err_handler);
   dbmsghandle(&msg_handler);
-  dbsetversion(DBVERSION_100);
   CAMLreturn(Val_unit);
 }
+
+CAMLexport value ocaml_freetds_setversion(value vversion)
+{
+  DBINT version;
+
+  /* Keep in sync with the def. of OCaml [version] type. */
+  switch (Int_val(vversion)) {
+  case 0: version = DBVERSION_42; break;
+  case 1: version = DBVERSION_46; break;
+  case 2: version = DBVERSION_70; break;
+  case 3: version = DBVERSION_71; break;
+  case 4: version = DBVERSION_72; break;
+  case 5: version = DBVERSION_73; break;
+  case 6: version = DBVERSION_74; break;
+  default:
+    raise_error(SEVERITY_CONSISTENCY, "Freetds.Dblib.connect: "
+                "Version not in sync with the OCaml definition");
+  }
+  if (dbsetversion(version) == FAIL) {
+    raise_error(SEVERITY_FATAL, "Freetds.Dblib.connect: could not set version");
+  }
+  return(Val_unit);
+}
+
+
 
 #define DBPROCESS_VAL(v) (* (DBPROCESS **) Data_custom_val(v))
 #define DBPROCESS_ALLOC()                                       \

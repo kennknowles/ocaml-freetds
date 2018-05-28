@@ -78,6 +78,10 @@ let () =
      way.  Allocates various internal structures and reads
      locales.conf (if any) to determine the default date format.  *)
 
+type version = V42 | V46 | V70 | V71 | V72 | V73 | V74
+
+external set_version : version -> unit = "ocaml_freetds_setversion"
+
 type dbprocess
 
 external dbopen :
@@ -86,7 +90,9 @@ external dbopen :
   -> server:string -> dbprocess
   = "ocaml_freetds_dbopen_bc" "ocaml_freetds_dbopen"
 
-let connect ?user ?password ?charset ?language ?application server =
+let connect ?user ?password ?charset ?language ?application ?(version=V70)
+      server =
+  set_version version;
   dbopen ~user ~password ~charset ~language ~application ~server
 
 external close : dbprocess -> unit = "ocaml_freetds_dbclose"

@@ -28,8 +28,27 @@ type dbprocess
   (** Value that contains all information needed by [Freetds.Dblib] to
       manage communications with the server.  *)
 
+(** Protocol version.
+   See {{:http://www.freetds.org/userguide/choosingtdsprotocol.htm}Choosing
+   a TDS protocol version} to help you choose.
+   In particular, 4.x versions of the protcol do not allow empty strings.
+   These will be returned as single chars. *)
+type version =
+  | V42 (** Works with all products, subject to limitations.  *)
+  | V46
+  | V70 (** Includes support for the extended datatypes in SQL Server
+           7.0 (such as char/varchar fields of more than 255
+           characters), and support for Unicode. *)
+  | V71 (** Include support for bigint (64 bit integers), variant and
+           collation on all fields.  Collation is not widely used.  *)
+  | V72 (** Includes support for varchar(max), varbinary(max), xml
+           datatypes and MARS. *)
+  | V73 (** Includes support for time, date, datetime2, datetimeoffset. *)
+  | V74 (** Includes support for session recovery. *)
+
 val connect : ?user:string -> ?password:string ->
               ?charset:string -> ?language:string -> ?application: string ->
+              ?version: version ->
               string -> dbprocess
 (** [connect server]: open a connection to the given database server.
 
@@ -52,6 +71,8 @@ val connect : ?user:string -> ?password:string ->
     language support is installed in the server, error messages are
     returned in the designated national language.  Set this only if
     you do not wish to use the server's default national language.
+
+    @param version Default {!V70}.
 
     @raise Dblib.Error if the connection to the database could not be
     established.  Note that if [server] cannot be converted to an IP
