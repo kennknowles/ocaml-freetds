@@ -17,6 +17,8 @@
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
+/* http://infocenter.sybase.com/help/index.jsp?topic=/com.sybase.help.sdk_12.5.1.ctref/html/ctref/X55618.htm */
+
 #include <ctpublic.h>
 #include <cspublic.h>
 #include <string.h>
@@ -815,6 +817,7 @@ CAMLexport value mltds_add_messages_server(value vconnection, value vlist)
 
 /*** Deallocation ***/
 
+/* FIXME: the programmer should not have to take care about memory. */
 /* Note: the programmer must not allow the context to be
    GC'd until all connections are closed, or they'll be killed. */
 void mltds_ct_ctx_finalize(value context)

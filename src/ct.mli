@@ -34,31 +34,6 @@ type context
 type connection
 (** Contains information about a particular client/server connection. *)
 
-(** CS_COMMAND *)
-type command
-
-(** CS_CLEAR CS_GET and CS_SET *)
-type prop_action = [ `Clear | `Get | `Set ]
-
-(** CS_APPNAME, CS_PASSWORD, and CS_USERNAME - there are others but
-    I've never used them...  Easy to add on demand; patches welcome *)
-type string_property = [ `Appname | `Password | `Username ]
-
-(** CS_LANG and CS_RPC - rpc is currently not really implemented
-    - you'll notice no ct_param wrapper *)
-type cmd_type = [ `Lang | `Rpc ]
-
-(** Options for compiling CS_NORECOMPILE and CS_RECOMPILE *)
-type cmd_option = [ `NoRecompile | `Recompile ]
-
-
-(** Result types; usually we only care about Row *)
-type result_type =
-        [ `Cmd_done | `Cmd_fail | `Cmd_succeed | `Param | `Row | `Status ]
-
-
-type resinfo_type = [ `Cmd_number | `Numdata | `Row_count ]
-
 type status = [ `CanBeNull | `Identity | `NoData | `Return ]
 
 type column = {
@@ -97,20 +72,54 @@ external ctx_create : unit -> context = "mltds_cs_ctx_create"
 (** {4 Connection} *)
 
 external con_alloc : context -> connection = "mltds_ct_con_alloc"
+
+(** CS_APPNAME, CS_PASSWORD, and CS_USERNAME - there are others but
+    I've never used them...  Easy to add on demand; patches welcome *)
+type string_property = [ `Appname | `Password | `Username ]
+
+(** CS_CLEAR CS_GET and CS_SET *)
+type prop_action = [ `Clear | `Get | `Set ]
+
 external con_setstring : connection -> string_property -> string -> unit
     = "mltds_ct_con_setstring"
+
 external connect : connection -> string -> unit = "mltds_ct_connect"
+(** [connect conn servername] connect to the server [servername]. *)
+
 val close : ?force:bool -> connection -> unit
 
+
 (** {4 Command} *)
+
+(** CS_COMMAND *)
+type command
+
 external cmd_alloc : connection -> command = "mltds_ct_cmd_alloc"
+
+(** CS_LANG and CS_RPC - rpc is currently not really implemented
+    - you'll notice no ct_param wrapper *)
+type cmd_type = [ `Lang | `Rpc ]
+
+(** Options for compiling CS_NORECOMPILE and CS_RECOMPILE *)
+type cmd_option = [ `NoRecompile | `Recompile ]
+
 external command :
     command -> cmd_type -> ?option:cmd_option -> string -> unit
     = "mltds_ct_command"
+
 external send : command -> unit = "mltds_ct_send"
 
+
 (** {4 Results} *)
+
+(** Result types; usually we only care about Row *)
+type result_type =
+        [ `Cmd_done | `Cmd_fail | `Cmd_succeed | `Param | `Row | `Status ]
+
 external results : command -> result_type = "mltds_ct_results"
+
+type resinfo_type = [ `Cmd_number | `Numdata | `Row_count ]
+
 external res_info : command -> resinfo_type -> int = "mltds_ct_res_info"
 
 external fetch : command -> int = "mltds_ct_fetch"
