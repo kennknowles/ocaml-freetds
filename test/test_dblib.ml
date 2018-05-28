@@ -121,7 +121,7 @@ let test_insert params _ =
                           c1 VARCHAR(10) DEFAULT '',
                           c2 VARCHAR(10) DEFAULT '',
                           c3 INT, c4 DOUBLE PRECISION)";
-      Dblib.sqlexec conn "INSERT INTO #test VALUES('a', 'b', 3, 4.2)";
+      Dblib.sqlexec conn "INSERT INTO #test VALUES('a', 'β', 3, 4.2)";
       Dblib.count conn |> assert_equal ~printer:string_of_int 1;
       Dblib.sqlexec conn "INSERT INTO #test VALUES('', '', -1, -6.3)";
       Dblib.sqlexec conn "SELECT c1, LEN(c1), RTRIM(c2), c3, c4 FROM #test";
@@ -129,7 +129,7 @@ let test_insert params _ =
       |> assert_bool "query has results";
       Dblib.nextrow conn
       |> assert_equal ~printer:string_of_row
-           Dblib.([STRING "a"; INT 1; STRING "b"; INT 3; FLOAT 4.2]);
+           Dblib.([STRING "a"; INT 1; STRING "β"; INT 3; FLOAT 4.2]);
       Dblib.nextrow conn
       |> assert_equal ~printer:string_of_row
            Dblib.([STRING ""; INT 0; STRING ""; INT(-1); FLOAT(-6.3)]);
