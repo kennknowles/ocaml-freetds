@@ -107,14 +107,16 @@ let test_data params _ =
                           CAST('abc' AS TEXT) AS txt, \
                           CAST(1 AS INT) AS i, \
                           CAST(3.4 AS DOUBLE PRECISION) AS d";
+      Dblib.results conn
+      |> assert_bool "query has results";
       Dblib.nextrow conn
       |> assert_equal ~printer:string_of_row
-           Dblib.([STRING "a"; STRING "a"; STRING "abc"; INT 1; FLOAT 4.3])
+           Dblib.([STRING "a"; STRING "a         "; STRING "abc";
+                   INT 1; FLOAT 4.3])
     )
 
 let test_insert params _ =
   with_conn params (fun conn ->
-      Dblib.sqlexec conn "SET IMPLICIT_TRANSACTIONS OFF";
       Dblib.sqlexec conn "CREATE TABLE #test(
                           c1 VARCHAR(10) DEFAULT '',
                           c2 VARCHAR(10) DEFAULT '',
