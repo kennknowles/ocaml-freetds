@@ -13,4 +13,7 @@ install:
 test:
 	@jbuilder runtest --force
 
-.PHONY: all build clean install test
+doc:
+	@jbuilder build @doc
+
+.PHONY: all build clean install test doc
