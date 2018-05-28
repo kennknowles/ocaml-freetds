@@ -121,6 +121,12 @@ external results : command -> result_type = "mltds_ct_results"
 type resinfo_type = [ `Cmd_number | `Numdata | `Row_count ]
 
 external res_info : command -> resinfo_type -> int = "mltds_ct_res_info"
+(** - [res_info cmd `Cmd_number] returns the number of the command that
+   generated the current result set.
+   - [res_info cmd `Numdata] returns the number of columns in the current
+   result set.
+   - [res_info cmd `Row_count] returns the number of rows affected by
+   the current command.*)
 
 external fetch : command -> int = "mltds_ct_fetch"
 val bind : command -> ?maxlen:int -> int -> column

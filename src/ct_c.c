@@ -17,7 +17,9 @@
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-/* http://infocenter.sybase.com/help/index.jsp?topic=/com.sybase.help.sdk_12.5.1.ctref/html/ctref/X55618.htm */
+/* http://infocenter.sybase.com/help/index.jsp?topic=/com.sybase.help.ocs_12.5.1.comlib/html/comlib/X31916.htm
+
+   http://infocenter.sybase.com/help/index.jsp?topic=/com.sybase.help.sdk_12.5.1.ctref/html/ctref/X55618.htm */
 
 #include <ctpublic.h>
 #include <cspublic.h>
