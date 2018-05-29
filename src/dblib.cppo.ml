@@ -64,7 +64,7 @@ let default_msg_handler severity line msg =
 
 type version = V42 | V46 | V70 | V71 | V72 | V73 | V74
 
-external dbinit : version -> unit = "ocaml_freetds_dbinit"
+external dbinit : unit -> unit = "ocaml_freetds_dbinit"
 
 let init version =
   Callback.register_exception "Freetds.Dblib.Error"
@@ -86,14 +86,15 @@ type dbprocess
 
 external dbopen :
   user:string option -> password:string option ->
-  charset: string option -> language: string option -> application:string option
+  charset: string option -> language: string option ->
+  application:string option -> version: version option
   -> server:string -> dbprocess
   = "ocaml_freetds_dbopen_bc" "ocaml_freetds_dbopen"
 
-let connect ?user ?password ?charset ?language ?application ?(version=V70)
+let connect ?user ?password ?charset ?language ?application ?version
       server =
-  if not !is_initialized then init version;
-  dbopen ~user ~password ~charset ~language ~application ~server
+  if not !is_initialized then init ();
+  dbopen ~user ~password ~charset ~language ~application ~version ~server
 
 external close : dbprocess -> unit = "ocaml_freetds_dbclose"
 

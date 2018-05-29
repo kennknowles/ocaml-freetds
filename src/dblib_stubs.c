@@ -140,10 +140,9 @@ static int err_handler(DBPROCESS *dbproc, int severity, /* in syberror.h */
 }
 
 
-CAMLexport value ocaml_freetds_dbinit(value vversion)
+CAMLexport value ocaml_freetds_dbinit(value unit)
 {
-  CAMLparam1(vversion);
-  DBINT version;
+  CAMLparam0();
 
   if (dbinit() == FAIL) {
     raise_error(SEVERITY_FATAL, "Cannot initialize DB-lib!");
@@ -152,24 +151,6 @@ CAMLexport value ocaml_freetds_dbinit(value vversion)
    * handler aborts the program under some circumstances. */
   dberrhandle(&err_handler);
   dbmsghandle(&msg_handler);
-  /* Set version */
-  /* Keep in sync with the def. of OCaml [version] type. */
-  switch (Int_val(vversion)) {
-  case 0: version = DBVERSION_42; break;
-  case 1: version = DBVERSION_46; break;
-  case 2: version = DBVERSION_70; break;
-  case 3: version = DBVERSION_71; break;
-  case 4: version = DBVERSION_72; break;
-  case 5: version = DBVERSION_73; break;
-  case 6: version = DBVERSION_74; break;
-  default:
-    raise_error(SEVERITY_CONSISTENCY, "Freetds.Dblib.connect: "
-                "Version not in sync with the OCaml definition");
-  }
-  if (dbsetversion(version) == FAIL) {
-    raise_error(SEVERITY_PROGRAM,
-                "Freetds.Dblib.connect: could not set version");
-  }
   CAMLreturn(Val_unit);
 }
 
@@ -206,13 +187,14 @@ static struct custom_operations dbprocess_ops = {
 CAMLexport
 value ocaml_freetds_dbopen(value vuser, value vpasswd, value vchar_set,
                            value vlanguage, value vapplication,
-                           value vserver)
+                           value vversion, value vserver)
 {
   CAMLparam5(vuser, vpasswd, vapplication, vchar_set, vlanguage);
-  CAMLxparam1(vserver);
+  CAMLxparam2(vversion, vserver);
   CAMLlocal1(vdbproc);
   LOGINREC *login;
   DBPROCESS *dbproc;
+  DBINT version;
 
   if ((login = dblogin()) == NULL) {
     raise_error(SEVERITY_FATAL,
@@ -228,6 +210,26 @@ value ocaml_freetds_dbopen(value vuser, value vpasswd, value vchar_set,
     DBSETLNATLANG(login, String_val(Field(vlanguage, 0)));
   if (Is_block(vapplication)) /* <> None */
     DBSETLAPP(login, String_val(Field(vapplication, 0)));
+  if (Is_block(vversion)) /* <> None */ {
+    /* Keep in sync with the def. of OCaml [version] type. */
+    switch (Int_val(Field(vversion, 0))) {
+    case 0: version = DBVERSION_42; break;
+    case 1: version = DBVERSION_46; break;
+    case 2: version = DBVERSION_70; break;
+    case 3: version = DBVERSION_71; break;
+    case 4: version = DBVERSION_72; break;
+    case 5: version = DBVERSION_73; break;
+    case 6: version = DBVERSION_74; break;
+    default:
+      raise_error(SEVERITY_CONSISTENCY, "Freetds.Dblib.connect: "
+                  "Version not in sync with the OCaml definition. "
+                  "Contact the authors of OCaml FreeTDS.");
+    }
+    if (DBSETLVERSION(login, version) == FAIL) {
+      raise_error(SEVERITY_PROGRAM,
+                  "Freetds.Dblib.connect: could not set version");
+    }
+  }
 
   dbproc = dbopen(login, String_val(vserver));
   dbloginfree(login); /* dbopen made => [login] no longer needed. */
@@ -243,7 +245,7 @@ value ocaml_freetds_dbopen(value vuser, value vpasswd, value vchar_set,
 CAMLexport value ocaml_freetds_dbopen_bc(value * argv, int argn)
 {
   return ocaml_freetds_dbopen(
-    argv[0], argv[1], argv[2], argv[3], argv[4], argv[5]);
+    argv[0], argv[1], argv[2], argv[3], argv[4], argv[5], argv[6]);
 }
 
 

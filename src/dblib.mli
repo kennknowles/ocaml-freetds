@@ -28,7 +28,13 @@ type dbprocess
   (** Value that contains all information needed by [Freetds.Dblib] to
       manage communications with the server.  *)
 
-(** Version of DB-Library behavior that an application expects.  *)
+(** Protocol version.  Note that the protocol version is chosen in
+   your freetds.conf file or via the environment variable TDSVER
+   (which supersedes the configuration file).  See
+   {{:http://www.freetds.org/userguide/choosingtdsprotocol.htm}Choosing
+   a TDS protocol version} to help you choose.  Be warned that 4.x
+   versions of the protcol do not allow empty strings which will be
+   returned as strings of length 1.  *)
 type version =
   | V42 (** Works with all products, subject to limitations.  *)
   | V46
@@ -47,13 +53,6 @@ val connect : ?user:string -> ?password:string ->
               ?version: version ->
               string -> dbprocess
 (** [connect server]: open a connection to the given database server.
-    Note that the protocol version is chosen in your freetds.conf file
-    or via the environment variable TDSVER (which supersedes the
-    configuration file).  See
-    {{:http://www.freetds.org/userguide/choosingtdsprotocol.htm}Choosing
-    a TDS protocol version} to help you choose.  Note that 4.x
-    versions of the protcol do not allow empty strings which will be
-    returned as strings of length 1.
 
     @param charset The name of the character set the client will use.
     Default values include "iso_1" for ISO-8859-1 (most platforms),
@@ -75,8 +74,9 @@ val connect : ?user:string -> ?password:string ->
     returned in the designated national language.  Set this only if
     you do not wish to use the server's default national language.
 
-    @param version Default {!V70}.  It is set at the first call of this
-    function.
+    @param version protocol version for this connection.  Be warned
+    that, even if set, this is superseded by the value of the
+    environment variable TDSVER.
 
     @raise Dblib.Error if the connection to the database could not be
     established.  Note that if [server] cannot be converted to an IP
