@@ -218,8 +218,20 @@ value ocaml_freetds_dbopen(value vuser, value vpasswd, value vchar_set,
     case 2: version = DBVERSION_70; break;
     case 3: version = DBVERSION_71; break;
     case 4: version = DBVERSION_72; break;
-    case 5: version = DBVERSION_73; break;
-    case 6: version = DBVERSION_74; break;
+    case 5:
+#ifdef DBVERSION_73
+      version = DBVERSION_73; break;
+#else
+      raise_error(SEVERITY_PROGRAM, "Freetds.Dblib.connect: Your version "
+                  "of FreeTDS does not support V73.  Please upgrade.");
+#endif
+    case 6:
+#ifdef DBVERSION_74
+      version = DBVERSION_74; break;
+#else
+      raise_error(SEVERITY_PROGRAM, "Freetds.Dblib.connect: Your version "
+                  "of FreeTDS does not support V74.  Please upgrade.");
+#endif
     default:
       raise_error(SEVERITY_CONSISTENCY, "Freetds.Dblib.connect: "
                   "Version not in sync with the OCaml definition. "
