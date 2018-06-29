@@ -28,8 +28,9 @@ let with_conn (user, password, server, database) f =
   let conn = Dblib.connect ~user ~password server in
   Dblib.use conn database;
   try
-    f conn;
-    Dblib.close conn
+    let res = f conn in
+    Dblib.close conn;
+    res
   with e ->
     Dblib.close conn;
     raise e
@@ -38,6 +39,17 @@ let test_connect ((_, _, _, database) as params) _ =
   with_conn params (fun conn ->
       Dblib.name conn
       |> assert_equal ~printer:string_of_string database)
+
+let test_bad_login (user, password, server, database) _ =
+  (* this test is mostly just verifying that we don't crash if the error handler
+     is called by dbopen *)
+  let user = user ^ "invalid" in
+  let params = (user, password, server, database) in
+  let expect_msg =
+      sprintf "Error on line 1: Login failed for user '%s'." user in
+  assert_raises (Dblib.Error (Dblib.FATAL, expect_msg)) (fun () ->
+      with_conn params (fun _ ->
+          ()))
 
 let test_basic_query params _ =
   with_conn params (fun conn ->
@@ -135,6 +147,47 @@ let test_insert params _ =
            Dblib.([STRING ""; INT 0; STRING ""; INT(-1); FLOAT(-6.3)]);
     )
 
+let test_concurrency params _ =
+  let jobs = ref [] in
+  for _ = 0 to 50 do
+    let result = ref (Error (Failure "result was never set")) in
+    let job =
+      Thread.create (fun () ->
+          result :=
+            try
+              with_conn params (fun conn ->
+                  Dblib.sqlexec conn "SELECT 1, 2, 3";
+                  Dblib.results conn
+                  |> assert_bool "query has results";
+                  Dblib.nextrow conn
+                  |> assert_equal ~printer:string_of_row
+                    Dblib.([INT 1; INT 2; INT 3]);
+                  Dblib.canquery conn;
+                  (try
+                     ignore(Dblib.coltype conn 4);
+                     assert_failure "Dblib.coltype should signal '4' is not a valid column"
+                   with
+                   | Dblib.Error(Dblib.PROGRAM, _) -> ()
+                   | e -> assert_failure("Dblib.coltype should raise Error(PROGRAM, _) \
+                                          instead of " ^ Printexc.to_string e));
+                  (try
+                     Dblib.sqlexec conn "not real sql";
+                   with
+                   | Dblib.Error(Dblib.FATAL, _) -> ()
+                   | e -> assert_failure("Dblib.sqlexec should raise Error(FATAL, _) \
+                                          instead of " ^ Printexc.to_string e));
+                  Ok ())
+            with exn ->
+              Printexc.print_backtrace stderr;
+              Error exn)
+        ()
+    in
+    jobs := (job, result) :: !jobs
+  done;
+  List.iter (fun (job, result) ->
+      Thread.join job;
+      assert_equal (Ok ()) !result) !jobs
+
 let () =
   match get_params () with
   | None ->
@@ -142,10 +195,12 @@ let () =
                     aren't set"
   | Some params ->
      [ "connect", test_connect
+     ; "bad login", test_bad_login
      ; "basic query", test_basic_query
      ; "empty strings", test_empty_strings
      ; "data", test_data
-     ; "insert", test_insert ]
+     ; "insert", test_insert
+     ; "concurrency", test_concurrency ]
      |> List.map (fun (name, test) -> name >:: test params)
      |> OUnit2.test_list
      |> OUnit2.run_test_tt_main
