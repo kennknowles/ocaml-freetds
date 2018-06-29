@@ -30,6 +30,7 @@
 #include <caml/fail.h>
 #include <caml/callback.h>
 #include <caml/custom.h>
+#include <caml/threads.h>
 
 /* OCaml severity.  Keep in sync with OCaml [Dblib]. */
 #define SEVERITY_PROGRAM Val_int(6)
@@ -73,6 +74,7 @@ static int msg_handler(DBPROCESS *dbproc, DBINT msgno, int msgstate, int severit
   if (msgno == changed_database || msgno == changed_language)
     return 0;
 
+  caml_acquire_runtime_system();
   CAMLparam0();
   CAMLlocal3(vseverity, vline, vmsg);
   static value *handler = NULL;
@@ -88,6 +90,7 @@ static int msg_handler(DBPROCESS *dbproc, DBINT msgno, int msgstate, int severit
   vmsg = caml_copy_string(msgtext);
 
   caml_callback3(*handler, vseverity, vline, vmsg);
+  caml_release_runtime_system();
 
   CAMLreturn(INT_CANCEL); /* should not return */
 }
@@ -195,6 +198,7 @@ value ocaml_freetds_dbopen(value vuser, value vpasswd, value vchar_set,
   LOGINREC *login;
   DBPROCESS *dbproc;
   DBINT version;
+  char* server;
 
   if ((login = dblogin()) == NULL) {
     raise_error(SEVERITY_FATAL,
@@ -243,7 +247,11 @@ value ocaml_freetds_dbopen(value vuser, value vpasswd, value vchar_set,
     }
   }
 
-  dbproc = dbopen(login, String_val(vserver));
+  server = String_val(vserver);
+  caml_release_runtime_system();
+  dbproc = dbopen(login, server);
+  caml_acquire_runtime_system();
+
   dbloginfree(login); /* dbopen made => [login] no longer needed. */
   if (dbproc == NULL) {
     raise_error(SEVERITY_FATAL,
@@ -264,14 +272,27 @@ CAMLexport value ocaml_freetds_dbopen_bc(value * argv, int argn)
 CAMLexport value ocaml_freetds_dbclose(value vdbproc)
 {
   CAMLparam1(vdbproc);
-  dbclose(DBPROCESS_VAL(vdbproc));
+  DBPROCESS* dbproc = DBPROCESS_VAL(vdbproc);
+
+  caml_release_runtime_system();
+  dbclose(dbproc);
+  caml_acquire_runtime_system();
+
   CAMLreturn(Val_unit);
 }
 
 CAMLexport value ocaml_freetds_dbuse(value vdbproc, value vdbname)
 {
   CAMLparam2(vdbproc, vdbname);
-  if (dbuse(DBPROCESS_VAL(vdbproc), String_val(vdbname)) == FAIL) {
+  DBPROCESS* dbproc = DBPROCESS_VAL(vdbproc);
+  RETCODE status;
+  char* dbname = String_val(vdbname);
+
+  caml_release_runtime_system();
+  status = dbuse(dbproc, dbname);
+  caml_acquire_runtime_system();
+
+  if (status == FAIL) {
     caml_raise_not_found(); /* More precise error on the OCaml side. */
   }
   CAMLreturn(Val_unit);
@@ -281,9 +302,13 @@ CAMLexport value ocaml_freetds_dbname(value vdbproc)
 {
   CAMLparam1(vdbproc);
   CAMLlocal1(vname);
+  DBPROCESS* dbproc = DBPROCESS_VAL(vdbproc);
   char *name;
 
-  name = dbname(DBPROCESS_VAL(vdbproc));
+  caml_release_runtime_system();
+  name = dbname(dbproc);
+  caml_acquire_runtime_system();
+
   vname = caml_copy_string(name);
   /* free(name); */ /* generate a segfault */
   CAMLreturn(vname);
@@ -296,13 +321,20 @@ CAMLexport value ocaml_freetds_dbname(value vdbproc)
 CAMLexport value ocaml_freetds_dbsqlexec(value vdbproc, value vsql)
 {
   CAMLparam2(vdbproc, vsql);
+  DBPROCESS* dbproc = DBPROCESS_VAL(vdbproc);
+  char* sql = String_val(vsql);
+  RETCODE status;
 
-  if (dbcmd(DBPROCESS_VAL(vdbproc), String_val(vsql)) == FAIL) {
+  caml_release_runtime_system();
+  if (dbcmd(dbproc, sql) == FAIL) {
+    caml_acquire_runtime_system();
     raise_error(SEVERITY_RESOURCE, "Freetds.Dblib.sqlexec: cannot "
                 "allocate memory to hold the SQL query");
   }
   /* Sending the query to the server resets the command buffer. */
-  if (dbsqlexec(DBPROCESS_VAL(vdbproc)) == FAIL) {
+  status = dbsqlexec(dbproc);
+  caml_acquire_runtime_system();
+  if (status == FAIL) {
     caml_raise_not_found(); /* More precise error on the OCaml side. */
   }
   CAMLreturn(Val_unit);
@@ -391,10 +423,12 @@ CAMLexport value ocaml_freetds_dbcancel(value vdbproc)
 CAMLexport value ocaml_freetds_dbcanquery(value vdbproc)
 {
   CAMLparam1(vdbproc);
-  dbcanquery(DBPROCESS_VAL(vdbproc));
+  DBPROCESS* dbproc = DBPROCESS_VAL(vdbproc);
+  caml_release_runtime_system();
+  dbcanquery(dbproc);
+  caml_acquire_runtime_system();
   CAMLreturn(Val_unit);
 }
-
 
 CAMLexport value ocaml_freetds_dbnextrow(value vdbproc)
 {
@@ -402,7 +436,11 @@ CAMLexport value ocaml_freetds_dbnextrow(value vdbproc)
   DBPROCESS *dbproc = DBPROCESS_VAL(vdbproc);
   STATUS st;
 
-  switch (st = dbnextrow(dbproc)) {
+  caml_release_runtime_system();
+  st = dbnextrow(dbproc);
+  caml_acquire_runtime_system();
+
+  switch (st) {
   case REG_ROW:
     return(Val_int(st));
     break;

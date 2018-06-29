@@ -2,7 +2,7 @@
 
 (executables
  ((names (test_dblib test_ct))
-  (libraries (freetds oUnit))))
+  (libraries (freetds oUnit threads))))
 
 (alias
  ((name test)
