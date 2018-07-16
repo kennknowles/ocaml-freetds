@@ -1,5 +1,5 @@
 [![Build status](https://travis-ci.org/kennknowles/ocaml-freetds.png)](https://travis-ci.org/kennknowles/ocaml-freetds)
-[![Build status](https://ci.appveyor.com/api/projects/status/5441rwux5uih1x1v?svg=true)](https://ci.appveyor.com/project/Chris00/ocaml-freetds-u1sr2)
+[![Build status](https://ci.appveyor.com/api/projects/status/7mk4ksdqea78gqoh/branch/master?svg=true)](https://ci.appveyor.com/project/kennknowles/ocaml-freetds/branch/master)
 
 OCaml FreeTDS Binding
 =====================
