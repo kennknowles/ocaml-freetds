@@ -22,6 +22,7 @@ depends: [
   "dune" {build}
   "cppo" {build}
   "ounit" {test & >= "2.0.0"}
+  "ocaml" {>= "4.02.3"}
 ]
 depexts: [
   [["alpine"] ["freetds-dev"]]
@@ -37,5 +38,3 @@ depexts: [
   [["osx" "homebrew"] ["freetds"]]
 # [["cygwinports" "x86_64"] ["mingw64-x86_64-freetds"]]
 ]
-
-available: [ ocaml-version >= "4.02.3" ]
