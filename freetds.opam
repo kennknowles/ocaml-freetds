@@ -38,3 +38,8 @@ depexts: [
   [["osx" "homebrew"] ["freetds"]]
 # [["cygwinports" "x86_64"] ["mingw64-x86_64-freetds"]]
 ]
+synopsis: "Binding to the FreeTDS library"
+description: """
+FreeTDS is a set of libraries for Unix and Linux that allows your
+programs to natively talk to Microsoft SQL Server and Sybase
+databases."""
