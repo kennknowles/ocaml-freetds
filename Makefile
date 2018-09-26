@@ -1,19 +1,19 @@
 all: build
 
 build:
-	@jbuilder build @install @test --dev
+	@dune build @install @test
 
 clean:
-	@jbuilder clean
+	@dune clean
 	@$(RM) **/.merlin
 
-install:
-	@jbuilder install
+install uninstall:
+	@dune $@
 
 test:
-	@jbuilder runtest --force
+	@dune runtest --force
 
 doc:
-	@jbuilder build @doc
+	@dune build @doc
 
-.PHONY: all build clean install test doc
+.PHONY: all build clean install uninstall test doc

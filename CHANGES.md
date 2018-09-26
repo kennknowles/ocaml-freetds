@@ -1,3 +1,8 @@
+Dev
+---
+
+- Port to Dune and `dune.configurator`.
+
 0.6 2018-05-29
 --------------
 
