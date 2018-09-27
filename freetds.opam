@@ -25,18 +25,18 @@ depends: [
   "ocaml" {>= "4.02.3"}
 ]
 depexts: [
-  [["alpine"] ["freetds-dev"]]
-  [["centos"] ["epel-release" "freetds-devel"]]
-  [["debian"] ["freetds-dev"]]
-  [["ubuntu"] ["freetds-dev"]]
-  [["alpine"] ["freetds-dev"]]
-  [["fedora"] ["freetds-devel"]]
-  [["rhel"]   ["freetds-devel"]]
-  [["mageia"] ["libfreetds-devel"]]
-  [["opensuse"] ["freetds-devel"]]
-  [["freebsd"] ["freetds-devel"]]
-  [["osx" "homebrew"] ["freetds"]]
-# [["cygwinports" "x86_64"] ["mingw64-x86_64-freetds"]]
+  ["freetds-dev"] {os-distribution = "alpine"}
+  ["epel-release" "freetds-devel"] {os-distribution = "centos"}
+  ["freetds-dev"] {os-distribution = "debian"}
+  ["freetds-dev"] {os-distribution = "ubuntu"}
+  ["freetds-dev"] {os-distribution = "alpine"}
+  ["freetds-devel"] {os-distribution = "fedora"}
+  ["freetds-devel"] {os-distribution = "rhel"}
+  ["libfreetds-devel"] {os-distribution = "mageia"}
+  ["freetds-devel"] {os-distribution = "opensuse"}
+  ["freetds-devel"] {os = "freebsd"}
+  ["freetds"] {os = "macos" & os-distribution = "homebrew"}
+  ["mingw64-x86_64-freetds"] {arch = "x86_64" & os-distribution = "cygwinports"}
 ]
 synopsis: "Binding to the FreeTDS library"
 description: """
