@@ -21,7 +21,7 @@ build: [
 depends: [
   "dune" {build}
   "cppo" {build}
-  "ounit" {test & >= "2.0.0"}
+  "ounit" {with-test & >= "2.0.0"}
   "ocaml" {>= "4.02.3"}
 ]
 depexts: [
