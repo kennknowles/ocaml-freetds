@@ -699,7 +699,7 @@ CAMLprim value mltds_ct_fetch( value cmd )
                              CS_UNUSED,
                              &rows_read) );
 
-    CAMLreturn( Int_val(rows_read) );
+    CAMLreturn(Val_int(rows_read));
 }
 
 /* Since only one option is meaningful, simplify to a bool */
@@ -724,14 +724,14 @@ value value_of_severity(CS_INT severity)
 
     switch(severity)
     {
-    case CS_SV_INFORM:        CAMLreturn(Int_val(0));
-    case CS_SV_API_FAIL:      CAMLreturn(Int_val(1));
-    case CS_SV_RETRY_FAIL:    CAMLreturn(Int_val(2));
-    case CS_SV_RESOURCE_FAIL: CAMLreturn(Int_val(3));
-    case CS_SV_COMM_FAIL:     CAMLreturn(Int_val(4));
-    case CS_SV_INTERNAL_FAIL: CAMLreturn(Int_val(5));
+    case CS_SV_INFORM:        CAMLreturn(Val_int(0));
+    case CS_SV_API_FAIL:      CAMLreturn(Val_int(1));
+    case CS_SV_RETRY_FAIL:    CAMLreturn(Val_int(2));
+    case CS_SV_RESOURCE_FAIL: CAMLreturn(Val_int(3));
+    case CS_SV_COMM_FAIL:     CAMLreturn(Val_int(4));
+    case CS_SV_INTERNAL_FAIL: CAMLreturn(Val_int(5));
     /* CS_SV_FATAL */
-    default:                  CAMLreturn(Int_val(6));
+    default:                  CAMLreturn(Val_int(6));
     }
 }
 

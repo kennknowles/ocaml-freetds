@@ -65,7 +65,7 @@ let sql_results conn sql =
      let cols = Array.to_list cols in
      (try
        while true do
-         ignore(Ct.fetch cmd);
+         assert_equal ~printer:string_of_int 1 (Ct.fetch cmd);
          let row = List.map (fun c ->
                        Ct.buffer_contents c.Ct.col_buffer) cols in
          rows := row :: !rows
