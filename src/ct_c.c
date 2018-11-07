@@ -824,7 +824,7 @@ CAMLexport value mltds_add_messages_server(value vconnection, value vlist)
    GC'd until all connections are closed, or they'll be killed. */
 void mltds_ct_ctx_finalize(value context)
 {
-    CS_CONTEXT* ctx = Data_custom_val(context);
+    CS_CONTEXT* ctx = context_ptr(context);
 
     ct_exit(ctx, CS_FORCE_EXIT);
     cs_ctx_drop(ctx);
@@ -832,7 +832,7 @@ void mltds_ct_ctx_finalize(value context)
 
 void mltds_ct_con_finalize(value connection)
 {
-    CS_CONNECTION* conn = Data_custom_val(connection);
+    CS_CONNECTION* conn = connection_ptr(connection);
 
     ct_close(conn, CS_FORCE_CLOSE);
     ct_con_drop(conn);
@@ -840,7 +840,7 @@ void mltds_ct_con_finalize(value connection)
 
 void mltds_ct_cmd_finalize(value cmd)
 {
-    ct_cmd_drop(Data_custom_val(cmd));
+    ct_cmd_drop(command_ptr(cmd));
 }
 
 void mltds_binding_buffer_finalize(value buffer)
