@@ -598,7 +598,7 @@ CAMLprim value mltds_buffer_contents( value buffer )
     {
     case CS_BIT_TYPE:
         result = alloc(2, 0);
-        Store_field(result, 0, hash_variant("Bool"));
+        Store_field(result, 0, hash_variant("Bit"));
         Store_field(result, 1, Val_bool((int) BUFFER_CONTENTS(buf, CS_BIT)));
         CAMLreturn(result);
 
