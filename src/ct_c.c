@@ -622,15 +622,10 @@ CAMLprim value mltds_buffer_contents( value buffer )
         CAMLreturn(result);
         
     case CS_FLOAT_TYPE:
+    case CS_REAL_TYPE:
         result = alloc(2, 0);
         Store_field(result, 0, hash_variant("Float"));
         Store_field(result, 1, copy_double((double) BUFFER_CONTENTS(buf, CS_FLOAT)));
-        CAMLreturn(result);
-
-    case CS_REAL_TYPE:
-        result = alloc(2, 0);
-        Store_field(result, 0, hash_variant("Real"));
-        Store_field(result, 1, copy_double((double) BUFFER_CONTENTS(buf, CS_REAL)));
         CAMLreturn(result);
 
     case CS_TEXT_TYPE:
