@@ -546,6 +546,7 @@ CAMLprim value mltds_ct_bind( value cmd, value maxlen, value index )
     case CS_DATETIME4_TYPE:
     case CS_MONEY_TYPE:
     case CS_MONEY4_TYPE:
+    case CS_BIGINT_TYPE:
     case CS_NUMERIC_TYPE:
     case CS_DECIMAL_TYPE:
         /* I don't really understand the DECIMAL type so I let FreetDS cast to a string
@@ -637,6 +638,7 @@ CAMLprim value mltds_buffer_contents( value buffer )
     case CS_VARCHAR_TYPE:
         switch (buf->real_type)
         {
+        case CS_BIGINT_TYPE:
         case CS_MONEY_TYPE:
         case CS_MONEY4_TYPE:
         case CS_NUMERIC_TYPE:

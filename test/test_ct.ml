@@ -97,6 +97,28 @@ let test_null_in_strings params _ =
         rows ~printer:string_of_rows
     )
 
+let test_int_types params _ =
+  with_conn params (fun conn ->
+      let rows = sql_results conn
+                  "SELECT \
+                   CAST(5 AS BIT) AS bit,
+                   CAST(5 AS TINYINT) AS tinyint,
+                   CAST(5 AS SMALLINT) AS smallint,
+                   CAST(5 AS INT) AS int,
+                   CAST(5 AS BIGINT) AS bigint,
+                   CAST(5 AS DECIMAL) AS decimal,
+                   CAST(5 AS NUMERIC) AS numeric,
+                   CAST(5 AS FLOAT) as float,
+                   CAST(5 AS REAL) as real,
+                   CAST(5 AS MONEY) as money,
+                   CAST(5 AS SMALLMONEY) as smallmoney" in
+      assert_equal [ [`Bit true; `Int (Int32.of_int 5); `Int (Int32.of_int 5);
+                      `Int (Int32.of_int 5); `Decimal "5"; `Decimal "5";
+                      `Decimal "5"; `Float 5.; `Float 5.; `Decimal "5.00";
+                      `Decimal  "5.00"] ]
+        rows ~printer:string_of_rows
+    )
+
 let () =
     match get_params () with
   | None ->
@@ -105,7 +127,8 @@ let () =
   | Some params ->
      ["basic", test_basic;
       "empty strings", test_empty_strings;
-      "null in strings", test_null_in_strings]
+      "null in strings", test_null_in_strings;
+      "int types", test_int_types ]
      |> List.map (fun (name, test) -> name >:: test params)
      |> OUnit2.test_list
      |> OUnit2.run_test_tt_main
