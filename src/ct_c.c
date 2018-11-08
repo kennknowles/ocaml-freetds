@@ -241,7 +241,7 @@ value value_of_restype(CS_INT restype)
     if ( restype != CS_CMD_SUCCEED )
         raise_constant(*caml_named_value("cs_cmd_fail"));
 
-    CAMLreturn(Val_unit);
+    CAMLreturn(hash_variant("Cmd_succeed"));
 }
 
 value resinfo_type_of_value(value resinfo)

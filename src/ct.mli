@@ -116,6 +116,8 @@ external send : command -> unit = "mltds_ct_send"
 type result_type =
         [ `Cmd_done | `Cmd_fail | `Cmd_succeed | `Param | `Row | `Status ]
 
+val string_of_result_type : result_type -> string
+
 external results : command -> result_type = "mltds_ct_results"
 
 type resinfo_type = [ `Cmd_number | `Numdata | `Row_count ]

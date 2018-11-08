@@ -43,7 +43,7 @@ let with_conn (user, password, server, database) f =
   let cmd = Ct.cmd_alloc conn in
   Ct.command cmd `Lang ("USE " ^ database);
   Ct.send cmd;
-  ignore(Ct.results cmd);
+  assert_equal ~printer:Ct.string_of_result_type `Cmd_succeed (Ct.results cmd);
   try
     f conn;
     Ct.close conn

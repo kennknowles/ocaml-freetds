@@ -44,6 +44,15 @@ type cmd_type = [ `Lang | `Rpc ]
 type cmd_option = [ `Recompile | `NoRecompile ]
 
 type result_type = [ `Row | `Param | `Status | `Cmd_done | `Cmd_succeed | `Cmd_fail ]
+
+let string_of_result_type : result_type -> string = function
+  | `Row -> "Row"
+  | `Param -> "Param"
+  | `Status -> "Status"
+  | `Cmd_done -> "Cmd_done"
+  | `Cmd_succeed -> "Cmd_succeed"
+  | `Cmd_fail -> "Cmd_fail"
+
 type resinfo_type = [ `Row_count | `Cmd_number | `Numdata ]
 
 (* type datetime = {
