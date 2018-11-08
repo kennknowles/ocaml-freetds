@@ -66,6 +66,8 @@ type sql_t =
 | `Null
 ]
 
+val string_of_sql_t : sql_t -> string
+
 (** {4 Context} *)
 external ctx_create : unit -> context = "mltds_cs_ctx_create"
 

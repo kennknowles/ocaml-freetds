@@ -2,21 +2,8 @@ open Freetds
 open OUnit2
 open Printf
 
-let string_of_data : Ct.sql_t -> string = function
-  | `Bit b -> if b then "Bit(1)" else "Bit(0)"
-  | `Tinyint i -> sprintf "Tinyint %i" i
-  | `Smallint i -> sprintf "Smallint %i" i
-  | `Int i -> sprintf "Int %li" i
-  | `Text s -> sprintf "Text %S" s
-  | `String s -> sprintf "String %S" s
-  | `Binary s -> sprintf "Binary %S" s
-  | `Float f -> sprintf "Float %g" f
-  | `Datetime s -> sprintf "Datetime %s" s
-  | `Decimal s -> sprintf "Decimal %s" s
-  | `Null -> "Null"
-
 let string_of_row row =
-  let row = List.map string_of_data row in
+  let row = List.map Ct.string_of_sql_t row in
   sprintf "[%s]" (String.concat ", " row)
 
 let string_of_rows rows =
