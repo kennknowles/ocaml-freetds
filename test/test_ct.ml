@@ -99,6 +99,17 @@ let test_empty_strings params _ =
         rows ~printer:string_of_rows
     )
 
+let test_null_in_strings params _ =
+  with_conn params (fun conn ->
+      let rows = sql_results conn
+                   "SELECT \
+                    CAST(CHAR(0) + 'test' AS VARCHAR(10)) AS vc,
+                    CAST(CHAR(0) + 'test' AS TEXT) AS txt,
+                    CAST(CHAR(0) + 'test' AS VARBINARY(10)) AS vb" in
+      assert_equal [ [`String "\x00test"; `String "\x00test"; `Binary "\x00test"] ]
+        rows ~printer:string_of_rows
+    )
+
 let () =
     match get_params () with
   | None ->
@@ -106,7 +117,8 @@ let () =
                     variables aren't set"
   | Some params ->
      ["basic", test_basic;
-      "empty strings", test_empty_strings ]
+      "empty strings", test_empty_strings;
+      "null in strings", test_null_in_strings]
      |> List.map (fun (name, test) -> name >:: test params)
      |> OUnit2.test_list
      |> OUnit2.run_test_tt_main
