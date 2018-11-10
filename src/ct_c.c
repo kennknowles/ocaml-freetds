@@ -701,8 +701,8 @@ CAMLprim value mltds_ct_close( value conn, value force )
 {
     CAMLparam2(conn, force);
     CS_INT option = CS_UNUSED;
-    if ( Val_bool(force) ) option = CS_FORCE_CLOSE;
-    
+    if ( Bool_val(force) ) option = CS_FORCE_CLOSE;
+
     retval_inspect( "ct_close",
                     ct_close(connection_ptr(conn),
                              option) );
