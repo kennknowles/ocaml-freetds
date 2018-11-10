@@ -41,7 +41,7 @@ static void raise_error(value, char*) __attribute__ ((noreturn));
 
 static void raise_error(value severity, char *msg)
 {
-  CAMLparam0();
+  CAMLparam1(severity);
   CAMLlocal1(vmsg);
   value args[2];
   static value *exn = NULL;
@@ -100,8 +100,8 @@ static int err_handler(DBPROCESS *dbproc, int severity, /* in syberror.h */
 {
   CAMLparam0();
   CAMLlocal1(vmsg);
+  CAMLlocalN(args, 2);
   static value *handler = NULL;
-  value args[2];
   static value *exn = NULL;
 
   if (exn == NULL) {
@@ -142,7 +142,7 @@ static int err_handler(DBPROCESS *dbproc, int severity, /* in syberror.h */
 
 CAMLexport value ocaml_freetds_dbinit(value unit)
 {
-  CAMLparam0();
+  CAMLparam1(unit);
 
   if (dbinit() == FAIL) {
     raise_error(SEVERITY_FATAL, "Cannot initialize DB-lib!");
@@ -161,17 +161,19 @@ CAMLexport value ocaml_freetds_dbinit(value unit)
 
 static int dbprocess_compare(value v1, value v2)
 {
+  CAMLparam2(v1, v2);
   /* Compare pointers */
-  if (DBPROCESS_VAL(v1) < DBPROCESS_VAL(v2)) return(-1);
-  else if (DBPROCESS_VAL(v1) > DBPROCESS_VAL(v2)) return(1);
-  else return(0);
+  if (DBPROCESS_VAL(v1) < DBPROCESS_VAL(v2)) CAMLreturn(-1);
+  else if (DBPROCESS_VAL(v1) > DBPROCESS_VAL(v2)) CAMLreturn(1);
+  else CAMLreturn(0);
 }
 
 static intnat dbprocess_hash(value v)
 {
+  CAMLparam1(v);
   /* The pointer will do a good hash and respect compare v1 v2 = 0 ==>
      hash(v1) = hash(v2) */
-  return((intptr_t) DBPROCESS_VAL(v));
+  CAMLreturn((intptr_t) DBPROCESS_VAL(v));
 }
 
 static struct custom_operations dbprocess_ops = {
@@ -323,7 +325,8 @@ CAMLexport value ocaml_freetds_dbresults(value vdbproc)
 CAMLexport value ocaml_freetds_numcols(value vdbproc)
 {
   /* noalloc */
-  return(Val_int(dbnumcols(DBPROCESS_VAL(vdbproc))));
+  CAMLparam1(vdbproc);
+  CAMLreturn(Val_int(dbnumcols(DBPROCESS_VAL(vdbproc))));
 }
 
 CAMLexport value ocaml_freetds_dbcolname(value vdbproc, value vc)
@@ -436,13 +439,15 @@ CAMLexport value ocaml_freetds_dbdata(value vdbproc, value vc)
 CAMLexport value ocaml_freetds_is_null(value data_ptr)
 {
   /* noalloc */
-  return(Val_bool((BYTE *) data_ptr == NULL));
+  CAMLparam1(data_ptr);
+  CAMLreturn(Val_bool((BYTE *) data_ptr == NULL));
 }
 
 CAMLexport value ocaml_freetds_dbdatlen(value vdbproc, value vc)
 {
   /* noalloc */
-  return(Val_int(dbdatlen(DBPROCESS_VAL(vdbproc), Int_val(vc))));
+  CAMLparam2(vdbproc, vc);
+  CAMLreturn(Val_int(dbdatlen(DBPROCESS_VAL(vdbproc), Int_val(vc))));
 }
 
 
