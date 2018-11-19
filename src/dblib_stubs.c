@@ -146,8 +146,7 @@ static int msg_handler(DBPROCESS *dbproc, DBINT msgno, int msgstate, int severit
     handler = caml_named_value("Freetds.Dblib.msg_handler");
   }
 
-  severity = convert_severity(severity);
-  vseverity = Val_int(severity);
+  vseverity = Val_int(convert_severity(severity));
   vline = Val_int(line);
   vmsg = caml_copy_string(msgtext);
 
@@ -541,19 +540,19 @@ CAMLexport value ocaml_freetds_dbdata(value vdbproc, value vc)
 {
   CAMLparam2(vdbproc, vc);
   CAMLlocal1(vdata);
-
   DBPROCESS *dbproc = DBPROCESS_VAL(vdbproc);
-  vdata = (value)dbdata(dbproc, Int_val(vc));
+  vdata = caml_alloc_small(1, Abstract_tag);
+  Field(vdata, 0) = (value)dbdata(dbproc, Int_val(vc));
   maybe_raise_userdata_exn(dbproc);
 
   CAMLreturn(vdata);
 }
 
-CAMLexport value ocaml_freetds_is_null(value data_ptr)
+CAMLexport value ocaml_freetds_is_null(value vdata)
 {
   /* noalloc */
-  CAMLparam1(data_ptr);
-  CAMLreturn(Val_bool((BYTE *) data_ptr == NULL));
+  CAMLparam1(vdata);
+  CAMLreturn(Val_bool((BYTE *)Field(vdata, 0) == NULL));
 }
 
 CAMLexport value ocaml_freetds_dbdatlen(value vdbproc, value vc)
@@ -572,9 +571,10 @@ CAMLexport value ocaml_freetds_get_data(value vdbproc, value vcol,
                                         value vdata)
 {
   CAMLparam3(vdbproc, vcol, vdata);
-  CAMLlocal1(vconstructor);
+  CAMLlocal2(vres, vconstructor);
   DBPROCESS *dbproc = DBPROCESS_VAL(vdbproc);
-  BYTE *data = (BYTE *) vdata, *data_byte;
+  BYTE *data = (BYTE *)Field(vdata, 0);
+  BYTE *data_byte;
   DBINT len, converted_len;
   int col = Int_val(vcol), ty, data_int;
   double data_double;
@@ -591,7 +591,7 @@ CAMLexport value ocaml_freetds_get_data(value vdbproc, value vcol,
   converted_len =                                                       \
     dbconvert(dbproc, ty, data, len, SYBCHAR, data_byte, destlen);      \
   if (converted_len >= 0) {                                             \
-    COPY_STRING(vdata, (char *) data_byte, converted_len);              \
+    COPY_STRING(vres, (char *) data_byte, converted_len);               \
   }                                                                     \
   caml_stat_free(data_byte);                                            \
   maybe_raise_userdata_exn(dbproc);                                     \
@@ -622,14 +622,14 @@ CAMLexport value ocaml_freetds_get_data(value vdbproc, value vcol,
   case SYBCHAR:    /* fall-through */
   case SYBVARCHAR:
   case SYBTEXT:
-    COPY_STRING(vdata, data, len);
-    CONSTRUCTOR(0, vdata);
+    COPY_STRING(vres, data, len);
+    CONSTRUCTOR(0, vres);
     break;
   case SYBIMAGE:
   case SYBBINARY:
   case SYBVARBINARY:
-    COPY_STRING(vdata, data, len);
-    CONSTRUCTOR(10, vdata);
+    COPY_STRING(vres, data, len);
+    CONSTRUCTOR(10, vres);
     break;
 
   case SYBINT1:
@@ -673,11 +673,11 @@ CAMLexport value ocaml_freetds_get_data(value vdbproc, value vcol,
 
   case SYBNUMERIC:
     CONVERT_STRING(ceil(2.5 * len)); /* FIXME: max size ? */
-    CONSTRUCTOR(11, vdata);
+    CONSTRUCTOR(11, vres);
     break;
   case SYBDECIMAL:
     CONVERT_STRING(ceil(2.5 * len)); /* FIXME: max size ? */
-    CONSTRUCTOR(12, vdata);
+    CONSTRUCTOR(12, vres);
     break;
 
   case SYBBIT:
