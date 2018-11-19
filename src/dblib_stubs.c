@@ -89,7 +89,7 @@ static int msg_handler(DBPROCESS *dbproc, DBINT msgno, int msgstate, int severit
 
   caml_callback3(*handler, vseverity, vline, vmsg);
 
-  CAMLreturn(INT_CANCEL); /* should not return */
+  CAMLreturn(0);
 }
 
 /* http://manuals.sybase.com/onlinebooks/group-cnarc/cng1110e/dblib/@Generic__BookTextView/16561;pt=39614 */
@@ -136,7 +136,7 @@ static int err_handler(DBPROCESS *dbproc, int severity, /* in syberror.h */
   /* FIXME: allow the handler to return whether to continue trying on
      timeouts?  Separate handler for timeouts?? */
 
-  CAMLreturn(INT_CANCEL); /* should not return */
+  CAMLreturn(INT_CANCEL);
 }
 
 
