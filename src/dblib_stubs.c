@@ -607,6 +607,13 @@ CAMLexport value ocaml_freetds_get_data(value vdbproc, value vcol,
 
   len = dbdatlen(dbproc, col);
   maybe_raise_userdata_exn(dbproc);
+  if (len < 0)
+  {
+    // Column number out of range
+    raise_error(SEVERITY_CONSISTENCY,
+                "Freetds.Dblib.nextrow: column number not in range. "
+                "Please write to the authors of the OCaml FreeTDS bindings.");
+  }
 
   ty = dbcoltype(dbproc, col);
   maybe_raise_userdata_exn(dbproc);
