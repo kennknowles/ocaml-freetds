@@ -143,7 +143,7 @@ let test_exception_in_callback params _ =
                 Dblib.sqlexec conn "\x81"
             with
             | Dblib.Error(CONVERSION, _) -> ()
-            | _ -> assert false
+            | e -> raise e
         end;
         Dblib.sqlexec conn "SELECT 1")
 

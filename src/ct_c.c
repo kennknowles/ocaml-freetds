@@ -32,15 +32,6 @@
 #include <caml/fail.h>
 #include <caml/custom.h>
 
-#ifdef OCAML406
-#define COPY_VAL_STRING(str, len, data)                 \
-  str = caml_alloc_initialized_string(len, data)
-#else
-#define COPY_VAL_STRING(str, len, data)         \
-  str = alloc_string(len);                      \
-  memcpy((char *) String_val(str), data, len)
-#endif
-
 void mltds_ct_ctx_finalize(value ctx);
 void mltds_ct_con_finalize(value conn);
 void mltds_ct_cmd_finalize(value cmd);
@@ -649,7 +640,7 @@ CAMLprim value mltds_buffer_contents( value buffer )
         case CS_DECIMAL_TYPE:
         case CS_FLOAT_TYPE:
         case CS_REAL_TYPE:
-            COPY_VAL_STRING(str, buf->copied, buf->data);
+            str = caml_alloc_initialized_string(buf->copied, buf->data);
 
             result = alloc(2, 0);
             Store_field(result, 0, hash_variant("Decimal"));
@@ -660,7 +651,7 @@ CAMLprim value mltds_buffer_contents( value buffer )
         case CS_CHAR_TYPE:
         case CS_VARCHAR_TYPE:
         default:
-            COPY_VAL_STRING(str, buf->copied, buf->data);
+            str = caml_alloc_initialized_string(buf->copied, buf->data);
 
             result = alloc(2, 0);
             Store_field(result, 0, hash_variant("String"));
@@ -680,7 +671,7 @@ CAMLprim value mltds_buffer_contents( value buffer )
     case CS_NUMERIC_TYPE:
     case CS_DECIMAL_TYPE:
     default:
-        COPY_VAL_STRING(str, buf->copied, buf->data);
+        str = caml_alloc_initialized_string(buf->copied, buf->data);
 
         result = alloc(2, 0);
         Store_field(result, 0, hash_variant("Binary"));
@@ -747,7 +738,7 @@ static value get_client_message(CS_CONNECTION* conn, CS_INT msgno)
     retval_inspect(
       "ct_diag", ct_diag(conn, CS_GET, CS_CLIENTMSG_TYPE, msgno, &msg) );
 
-    COPY_VAL_STRING(str, msg.msgstringlen, msg.msgstring);
+    str = caml_alloc_initialized_string(msg.msgstringlen, msg.msgstring);
 
     result = alloc(2, 0);
     Store_field(result, 0, value_of_severity(msg.severity));
@@ -765,7 +756,7 @@ static value get_server_message(CS_CONNECTION* conn, CS_INT msgno)
     retval_inspect(
       "ct_diag", ct_diag(conn, CS_GET, CS_SERVERMSG_TYPE, msgno, &msg) );
 
-    COPY_VAL_STRING(str, msg.textlen, msg.text);
+    str = caml_alloc_initialized_string(msg.textlen, msg.text);
 
     result = alloc(2, 0);
     Store_field(result, 0, value_of_severity(msg.severity));

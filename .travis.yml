@@ -8,8 +8,7 @@ env:
     - PACKAGE=freetds
   matrix:
     - OCAML_VERSION=4.06
-    - OCAML_VERSION=4.05
-    - OCAML_VERSION=4.04
+    - OCAML_VERSION=4.07
 
 install: wget https://raw.githubusercontent.com/ocaml/ocaml-ci-scripts/master/.travis-opam.sh
 script: bash -ex .travis-opam.sh
