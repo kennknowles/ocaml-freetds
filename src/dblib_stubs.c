@@ -18,6 +18,7 @@
 /* Binding to the DB-Library part of freetds.
    See http://www.freetds.org/userguide/samplecode.htm */
 
+#include <assert.h>
 #include <sybfront.h> /* sqlfront.h always comes first */
 #include <sybdb.h>
 #include <syberror.h>
@@ -30,6 +31,7 @@
 #include <caml/fail.h>
 #include <caml/callback.h>
 #include <caml/custom.h>
+#include <caml/threads.h>
 
 /* OCaml severity.  Keep in sync with OCaml [Dblib]. */
 #define SEVERITY_PROGRAM Val_int(6)
@@ -39,6 +41,7 @@
 
 typedef struct User_data {
   value latest_exception;
+  int have_lock;
 } User_data;
 
 static void userdata_free(DBPROCESS* proc)
@@ -59,8 +62,15 @@ static void userdata_setup(DBPROCESS* proc)
 
   User_data* data = caml_stat_alloc(sizeof(User_data));
   data->latest_exception = Val_unit;
+  data->have_lock = 1;
   caml_register_global_root(&(data->latest_exception));
   dbsetuserdata(proc, (BYTE*)data);
+}
+
+static int userdata_has_exception(DBPROCESS *proc)
+{
+  User_data* data = (User_data*)dbgetuserdata(proc);
+  return data != NULL && data->latest_exception != Val_unit;
 }
 
 static void userdata_set_latest_exception(DBPROCESS *proc, value exn)
@@ -86,6 +96,40 @@ static void maybe_raise_userdata_exn(DBPROCESS* proc)
   vexn = data->latest_exception;
   data->latest_exception = Val_unit;
   caml_raise(vexn);
+}
+
+static void userdata_release_runtime_system(DBPROCESS *proc)
+{
+  User_data *data = (User_data*)dbgetuserdata(proc);
+
+  // If userdata wasn't setup, then we're in the msg/error callback for dbopen
+  if (data == NULL) {
+    caml_release_runtime_system();
+    return;
+  }
+
+  assert(data->have_lock);
+  data->have_lock = FALSE;
+  caml_release_runtime_system();
+}
+
+static int userdata_acquire_runtime_system(DBPROCESS *proc)
+{
+  User_data *data = (User_data *)dbgetuserdata(proc);
+
+  // If userdata wasn't setup, then we're in the msg/error callback for dbopen
+  if (data == NULL) {
+    caml_acquire_runtime_system();
+    return FALSE;
+  }
+
+  int had_lock = data->have_lock;
+  if (!had_lock)
+  {
+    caml_acquire_runtime_system();
+    data->have_lock = TRUE;
+  }
+  return had_lock;
 }
 
 static value make_dblib_error(value vseverity, char* msg)
@@ -137,6 +181,8 @@ static int msg_handler(DBPROCESS *dbproc, DBINT msgno, int msgstate, int severit
   if (msgno == changed_database || msgno == changed_language)
     return 0;
 
+  int had_lock = userdata_acquire_runtime_system(dbproc);
+
   CAMLparam0();
   CAMLlocal4(vseverity, vline, vmsg, vres);
   static value *handler = NULL;
@@ -159,7 +205,12 @@ static int msg_handler(DBPROCESS *dbproc, DBINT msgno, int msgstate, int severit
       userdata_set_latest_exception(dbproc, Extract_exception(vres));
   }
 
-  CAMLreturn(0);
+  CAMLdrop;
+
+  if (!had_lock)
+    userdata_release_runtime_system(dbproc);
+
+  return 0;
 }
 
 /* http://manuals.sybase.com/onlinebooks/group-cnarc/cng1110e/dblib/@Generic__BookTextView/16561;pt=39614 */
@@ -168,19 +219,31 @@ static int err_handler(DBPROCESS *dbproc, int severity, /* in syberror.h */
                        int oserr, /* in sybdb.h */
                        char *dberrstr, char *oserrstr)
 {
+  // For server messages, FreeTDS calls both the msg handler and err handler,
+  // but the msg handler gets an actual message and the error handler gets a
+  // useless message ("Check messages from the SQL Server")
+  // Ensure that if the msghandler already threw an exception, we don't
+  // overwrite that
+  if (dberr == SYBESMSG && userdata_has_exception(dbproc))
+  {
+    return INT_CANCEL;
+  }
+
+  int had_lock = userdata_acquire_runtime_system(dbproc);
   CAMLparam0();
   CAMLlocal4(vseverity, vmsg, vres, vexn);
-  int have_exn = FALSE;
+
   static value *handler = NULL;
-
-  vseverity = Val_int(convert_severity(severity));
-
   if (handler == NULL) {
     /* First time around, look up by name */
     handler = caml_named_value("Freetds.Dblib.err_handler");
   }
+
+  vseverity = Val_int(convert_severity(severity));
   vmsg = caml_copy_string(dberrstr);
   vres = caml_callback3_exn(*handler, vseverity, Val_int(dberr), vmsg);
+
+  int have_exn = FALSE;
   if (Is_exception_result(vres))
   {
     vexn = Extract_exception(vres);
@@ -195,10 +258,6 @@ static int err_handler(DBPROCESS *dbproc, int severity, /* in syberror.h */
     vexn = make_dblib_error(vseverity, oserrstr);
     have_exn = TRUE;
   }
-  else if (dberr == SYBESMSG) {
-    vexn = make_dblib_error(vseverity, "Check messages from the SQL Server");
-    have_exn = TRUE;
-  }
 
   if (have_exn) {
     if (dbproc == NULL)
@@ -207,9 +266,13 @@ static int err_handler(DBPROCESS *dbproc, int severity, /* in syberror.h */
       userdata_set_latest_exception(dbproc, vexn);
   }
 
-  CAMLreturn(INT_CANCEL);
-}
+  CAMLdrop;
 
+  if (!had_lock)
+    userdata_release_runtime_system(dbproc);
+
+  return INT_CANCEL;
+}
 
 CAMLexport value ocaml_freetds_dbinit(value unit)
 {
@@ -316,8 +379,15 @@ value ocaml_freetds_dbopen(value vuser, value vpasswd, value vchar_set,
     }
   }
 
-  dbproc = dbopen(login, String_val(vserver));
+  // Can't access OCaml string data once we release the runtime lock, so we need
+  // to copy this
+  char *server = caml_stat_strdup(String_val(vserver));
+  caml_release_runtime_system();
+  dbproc = dbopen(login, server);
+  caml_stat_free(server);
   dbloginfree(login); /* dbopen made => [login] no longer needed. */
+  caml_acquire_runtime_system();
+
   if (dbproc == NULL) {
     raise_error(SEVERITY_FATAL,
                 "Freetds.Dblib.connect: unable to connect to the database");
@@ -340,7 +410,9 @@ CAMLexport value ocaml_freetds_dbclose(value vdbproc)
   CAMLparam1(vdbproc);
   DBPROCESS *dbproc = DBPROCESS_VAL(vdbproc);
   userdata_free(dbproc);
+  caml_release_runtime_system();
   dbclose(dbproc);
+  caml_acquire_runtime_system();
   CAMLreturn(Val_unit);
 }
 
@@ -349,7 +421,12 @@ CAMLexport value ocaml_freetds_dbuse(value vdbproc, value vdbname)
   CAMLparam2(vdbproc, vdbname);
   DBPROCESS *dbproc = DBPROCESS_VAL(vdbproc);
 
-  RETCODE ret = dbuse(dbproc, String_val(vdbname));
+  char* dbname = caml_stat_strdup(String_val(vdbname));
+  userdata_release_runtime_system(dbproc);
+  RETCODE ret = dbuse(dbproc, dbname);
+  caml_stat_free(dbname);
+  assert(!userdata_acquire_runtime_system(dbproc));
+
   maybe_raise_userdata_exn(dbproc);
   if (ret == FAIL) {
     caml_raise_not_found(); /* More precise error on the OCaml side. */
@@ -386,7 +463,10 @@ CAMLexport value ocaml_freetds_dbsqlexec(value vdbproc, value vsql)
   }
 
   /* Sending the query to the server resets the command buffer. */
+  userdata_release_runtime_system(dbproc);
   ret = dbsqlexec(dbproc);
+  assert(!userdata_acquire_runtime_system(dbproc));
+
   maybe_raise_userdata_exn(dbproc);
   if (ret == FAIL)
   {
@@ -399,7 +479,9 @@ CAMLexport value ocaml_freetds_dbresults(value vdbproc)
 {
   CAMLparam1(vdbproc);
   DBPROCESS *dbproc = DBPROCESS_VAL(vdbproc);
+  userdata_release_runtime_system(dbproc);
   RETCODE erc = dbresults(dbproc);
+  assert(!userdata_acquire_runtime_system(dbproc));
   maybe_raise_userdata_exn(dbproc);
   if (erc == FAIL)
   {
@@ -486,7 +568,9 @@ CAMLexport value ocaml_freetds_dbcancel(value vdbproc)
   CAMLparam1(vdbproc);
   DBPROCESS* dbproc = DBPROCESS_VAL(vdbproc);
 
+  userdata_release_runtime_system(dbproc);
   dbcancel(dbproc);
+  assert(!userdata_acquire_runtime_system(dbproc));
   maybe_raise_userdata_exn(dbproc);
 
   CAMLreturn(Val_unit);
@@ -497,7 +581,9 @@ CAMLexport value ocaml_freetds_dbcanquery(value vdbproc)
   CAMLparam1(vdbproc);
   DBPROCESS* dbproc = DBPROCESS_VAL(vdbproc);
 
+  userdata_release_runtime_system(dbproc);
   dbcanquery(dbproc);
+  assert(!userdata_acquire_runtime_system(dbproc));
   maybe_raise_userdata_exn(dbproc);
 
   CAMLreturn(Val_unit);
@@ -509,7 +595,9 @@ CAMLexport value ocaml_freetds_dbnextrow(value vdbproc)
   CAMLparam1(vdbproc);
   DBPROCESS *dbproc = DBPROCESS_VAL(vdbproc);
 
+  userdata_release_runtime_system(dbproc);
   STATUS st = dbnextrow(dbproc);
+  assert(!userdata_acquire_runtime_system(dbproc));
   maybe_raise_userdata_exn(dbproc);
 
   switch (st) {
