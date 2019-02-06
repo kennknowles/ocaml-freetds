@@ -1,6 +1,10 @@
-Dev
----
+0.7 2019-02-06
+--------------
 
+- Release the runtime lock during IO (@brendanlong).
+- Many fixes to the C stubs of `Dblib` and `Ct` thanks to
+  @brendanlong.  In particular, raising exceptions on `Dblib` errors
+  should no longer bring havoc to the DBPROCESS.
 - Port to Dune and `dune.configurator`.
 
 0.6 2018-05-29
