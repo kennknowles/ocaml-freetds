@@ -16,6 +16,11 @@ let conf c =
        C.die "The value of REG_ROW was not found in the C hreader file. \
               Please make sure the development files of FreeTDS are \
               installed in a location where the C compiler finds them." in
+  let ocaml_ver = C.ocaml_config_var_exn c "version" in
+  let major, minor = Scanf.sscanf ocaml_ver "%d.%d" (fun m n -> m, n) in
+  let cflags = if major > 4 || (major = 4 && minor >= 6) then
+                 "-DOCAML406" :: cflags
+                 else cflags in
   let fh = open_out "reg_row.txt" in
   fprintf fh "%d" reg_row;
   close_out fh;
