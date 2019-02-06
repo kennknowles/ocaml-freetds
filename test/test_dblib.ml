@@ -24,8 +24,8 @@ let get_params () =
   | _ ->
     None
 
-let with_conn (user, password, server, database) f =
-  let conn = Dblib.connect ~user ~password server in
+let with_conn ?charset (user, password, server, database) f =
+  let conn = Dblib.connect ?charset ~user ~password server in
   Dblib.use conn database;
   try
     f conn;
@@ -136,14 +136,13 @@ let test_insert params _ =
     )
 
 let test_exception_in_callback params _ =
-    with_conn params (fun conn ->
+    with_conn params ~charset:"iso_1" (fun conn ->
         begin
             try
                 (* \x81 is invalid in UTF-8 and CP1252 *)
-                Dblib.sqlexec conn "\x81"
+                Dblib.sqlexec conn "SELECT ξ"
             with
-            | Dblib.Error(CONVERSION, _) -> ()
-            | e -> raise e
+              Dblib.Error(CONVERSION, _) | Dblib.Error(FATAL, _) -> ()
         end;
         Dblib.sqlexec conn "SELECT 1")
 
