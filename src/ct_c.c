@@ -241,7 +241,7 @@ value value_of_restype(CS_INT restype)
     if ( restype != CS_CMD_SUCCEED )
         raise_constant(*caml_named_value("cs_cmd_fail"));
 
-    CAMLreturn(Val_unit);
+    CAMLreturn(hash_variant("Cmd_succeed"));
 }
 
 value resinfo_type_of_value(value resinfo)
@@ -546,6 +546,7 @@ CAMLprim value mltds_ct_bind( value cmd, value maxlen, value index )
     case CS_DATETIME4_TYPE:
     case CS_MONEY_TYPE:
     case CS_MONEY4_TYPE:
+    case CS_BIGINT_TYPE:
     case CS_NUMERIC_TYPE:
     case CS_DECIMAL_TYPE:
         /* I don't really understand the DECIMAL type so I let FreetDS cast to a string
@@ -598,7 +599,7 @@ CAMLprim value mltds_buffer_contents( value buffer )
     {
     case CS_BIT_TYPE:
         result = alloc(2, 0);
-        Store_field(result, 0, hash_variant("Bool"));
+        Store_field(result, 0, hash_variant("Bit"));
         Store_field(result, 1, Val_bool((int) BUFFER_CONTENTS(buf, CS_BIT)));
         CAMLreturn(result);
 
@@ -621,15 +622,10 @@ CAMLprim value mltds_buffer_contents( value buffer )
         CAMLreturn(result);
         
     case CS_FLOAT_TYPE:
+    case CS_REAL_TYPE:
         result = alloc(2, 0);
         Store_field(result, 0, hash_variant("Float"));
         Store_field(result, 1, copy_double((double) BUFFER_CONTENTS(buf, CS_FLOAT)));
-        CAMLreturn(result);
-
-    case CS_REAL_TYPE:
-        result = alloc(2, 0);
-        Store_field(result, 0, hash_variant("Real"));
-        Store_field(result, 1, copy_double((double) BUFFER_CONTENTS(buf, CS_REAL)));
         CAMLreturn(result);
 
     case CS_TEXT_TYPE:
@@ -637,15 +633,15 @@ CAMLprim value mltds_buffer_contents( value buffer )
     case CS_VARCHAR_TYPE:
         switch (buf->real_type)
         {
+        case CS_BIGINT_TYPE:
         case CS_MONEY_TYPE:
         case CS_MONEY4_TYPE:
         case CS_NUMERIC_TYPE:
         case CS_DECIMAL_TYPE:
         case CS_FLOAT_TYPE:
         case CS_REAL_TYPE:
-            str = alloc_string(buf->copied);
-            strncpy(String_val(str), (char*)(buf->data), buf->copied);
-            
+            str = caml_alloc_initialized_string(buf->copied, buf->data);
+
             result = alloc(2, 0);
             Store_field(result, 0, hash_variant("Decimal"));
             Store_field(result, 1, str);
@@ -655,14 +651,13 @@ CAMLprim value mltds_buffer_contents( value buffer )
         case CS_CHAR_TYPE:
         case CS_VARCHAR_TYPE:
         default:
-            str = alloc_string(buf->copied);
-            strncpy(String_val(str), (char*)(buf->data), buf->copied);
-            
+            str = caml_alloc_initialized_string(buf->copied, buf->data);
+
             result = alloc(2, 0);
             Store_field(result, 0, hash_variant("String"));
             Store_field(result, 1, str);
             CAMLreturn(result);
-            
+
         }
         break;
 
@@ -676,9 +671,8 @@ CAMLprim value mltds_buffer_contents( value buffer )
     case CS_NUMERIC_TYPE:
     case CS_DECIMAL_TYPE:
     default:
-        str = alloc_string(buf->copied);
-        strncpy(String_val(str), (char*)(buf->data), buf->copied);
-        
+        str = caml_alloc_initialized_string(buf->copied, buf->data);
+
         result = alloc(2, 0);
         Store_field(result, 0, hash_variant("Binary"));
         Store_field(result, 1, str);
@@ -699,7 +693,7 @@ CAMLprim value mltds_ct_fetch( value cmd )
                              CS_UNUSED,
                              &rows_read) );
 
-    CAMLreturn( Int_val(rows_read) );
+    CAMLreturn(Val_int(rows_read));
 }
 
 /* Since only one option is meaningful, simplify to a bool */
@@ -707,8 +701,8 @@ CAMLprim value mltds_ct_close( value conn, value force )
 {
     CAMLparam2(conn, force);
     CS_INT option = CS_UNUSED;
-    if ( Val_bool(force) ) option = CS_FORCE_CLOSE;
-    
+    if ( Bool_val(force) ) option = CS_FORCE_CLOSE;
+
     retval_inspect( "ct_close",
                     ct_close(connection_ptr(conn),
                              option) );
@@ -724,14 +718,14 @@ value value_of_severity(CS_INT severity)
 
     switch(severity)
     {
-    case CS_SV_INFORM:        CAMLreturn(Int_val(0));
-    case CS_SV_API_FAIL:      CAMLreturn(Int_val(1));
-    case CS_SV_RETRY_FAIL:    CAMLreturn(Int_val(2));
-    case CS_SV_RESOURCE_FAIL: CAMLreturn(Int_val(3));
-    case CS_SV_COMM_FAIL:     CAMLreturn(Int_val(4));
-    case CS_SV_INTERNAL_FAIL: CAMLreturn(Int_val(5));
+    case CS_SV_INFORM:        CAMLreturn(Val_int(0));
+    case CS_SV_API_FAIL:      CAMLreturn(Val_int(1));
+    case CS_SV_RETRY_FAIL:    CAMLreturn(Val_int(2));
+    case CS_SV_RESOURCE_FAIL: CAMLreturn(Val_int(3));
+    case CS_SV_COMM_FAIL:     CAMLreturn(Val_int(4));
+    case CS_SV_INTERNAL_FAIL: CAMLreturn(Val_int(5));
     /* CS_SV_FATAL */
-    default:                  CAMLreturn(Int_val(6));
+    default:                  CAMLreturn(Val_int(6));
     }
 }
 
@@ -744,10 +738,8 @@ static value get_client_message(CS_CONNECTION* conn, CS_INT msgno)
     retval_inspect(
       "ct_diag", ct_diag(conn, CS_GET, CS_CLIENTMSG_TYPE, msgno, &msg) );
 
-    /*str = caml_copy_string(msgtext);*/
-    str = alloc_string(msg.msgstringlen);
-    strncpy(String_val(str), msg.msgstring, msg.msgstringlen ); 
-    
+    str = caml_alloc_initialized_string(msg.msgstringlen, msg.msgstring);
+
     result = alloc(2, 0);
     Store_field(result, 0, value_of_severity(msg.severity));
     Store_field(result, 1, str); 
@@ -764,10 +756,8 @@ static value get_server_message(CS_CONNECTION* conn, CS_INT msgno)
     retval_inspect(
       "ct_diag", ct_diag(conn, CS_GET, CS_SERVERMSG_TYPE, msgno, &msg) );
 
-    /*str = caml_copy_string(msgtext);*/
-    str = alloc_string(strnlen(msg.text, CS_MAX_MSG) + 1);
-    strncpy(String_val(str), msg.text, strnlen(msg.text, CS_MAX_MSG));
-    
+    str = caml_alloc_initialized_string(msg.textlen, msg.text);
+
     result = alloc(2, 0);
     Store_field(result, 0, value_of_severity(msg.severity));
     Store_field(result, 1, str);
@@ -824,7 +814,7 @@ CAMLexport value mltds_add_messages_server(value vconnection, value vlist)
    GC'd until all connections are closed, or they'll be killed. */
 void mltds_ct_ctx_finalize(value context)
 {
-    CS_CONTEXT* ctx = Data_custom_val(context);
+    CS_CONTEXT* ctx = context_ptr(context);
 
     ct_exit(ctx, CS_FORCE_EXIT);
     cs_ctx_drop(ctx);
@@ -832,7 +822,7 @@ void mltds_ct_ctx_finalize(value context)
 
 void mltds_ct_con_finalize(value connection)
 {
-    CS_CONNECTION* conn = Data_custom_val(connection);
+    CS_CONNECTION* conn = connection_ptr(connection);
 
     ct_close(conn, CS_FORCE_CLOSE);
     ct_con_drop(conn);
@@ -840,7 +830,7 @@ void mltds_ct_con_finalize(value connection)
 
 void mltds_ct_cmd_finalize(value cmd)
 {
-    ct_cmd_drop(Data_custom_val(cmd));
+    ct_cmd_drop(command_ptr(cmd));
 }
 
 void mltds_binding_buffer_finalize(value buffer)
