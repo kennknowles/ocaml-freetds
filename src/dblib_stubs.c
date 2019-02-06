@@ -171,7 +171,7 @@ static intnat dbprocess_hash(value v)
 {
   /* The pointer will do a good hash and respect compare v1 v2 = 0 ==>
      hash(v1) = hash(v2) */
-  return((intptr_t) DBPROCESS_VAL(v));
+  return((intnat) DBPROCESS_VAL(v));
 }
 
 static struct custom_operations dbprocess_ops = {
