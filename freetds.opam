@@ -36,7 +36,7 @@ depexts: [
   ["freetds-devel"] {os-distribution = "opensuse"}
   ["freetds-devel"] {os = "freebsd"}
   ["freetds"] {os = "macos" & os-distribution = "homebrew"}
-  ["mingw64-x86_64-freetds"] {arch = "x86_64" & os-distribution = "cygwinports"}
+  ["freetds"] {os = "win32" & os-distribution = "cygwinports"}
 ]
 synopsis: "Binding to the FreeTDS library"
 description: """
