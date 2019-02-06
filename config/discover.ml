@@ -6,11 +6,9 @@ let conf c =
   let libs = ["-lct"; "-lsybdb"] in
   let reg_row =
     let open C.C_define in
-    (* FIXME: "-" hack for a negative value.
-       See https://github.com/ocaml/dune/pull/1334 *)
-    let h = import c ~includes:["sybdb.h"] [("-REG_ROW", Type.Int)] in
-    match List.assoc "-REG_ROW" h with
-    | Value.Int r -> -r
+    let h = import c ~includes:["sybdb.h"] [("REG_ROW", Type.Int)] in
+    match List.assoc "REG_ROW" h with
+    | Value.Int r -> r
     | Value.Switch _ | Value.String _ -> assert false
     | exception _ ->
        C.die "The value of REG_ROW was not found in the C hreader file. \
