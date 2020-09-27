@@ -139,7 +139,7 @@ static value make_dblib_error(value vseverity, char* msg)
   CAMLparam1(vseverity);
   CAMLlocal2(vexn, vmsg);
 
-  static value *exn = NULL;
+  static const value *exn = NULL;
   if (exn == NULL) {
     /* First time around, look up by name */
     exn = caml_named_value("Freetds.Dblib.Error");
@@ -185,7 +185,7 @@ static int msg_handler(DBPROCESS *dbproc, DBINT msgno, int msgstate, int severit
 
   CAMLparam0();
   CAMLlocal4(vseverity, vline, vmsg, vres);
-  static value *handler = NULL;
+  static const value *handler = NULL;
 
   if (handler == NULL) {
     /* First time around, look up by name */
@@ -233,7 +233,7 @@ static int err_handler(DBPROCESS *dbproc, int severity, /* in syberror.h */
   CAMLparam0();
   CAMLlocal4(vseverity, vmsg, vres, vexn);
 
-  static value *handler = NULL;
+  static const value *handler = NULL;
   if (handler == NULL) {
     /* First time around, look up by name */
     handler = caml_named_value("Freetds.Dblib.err_handler");
