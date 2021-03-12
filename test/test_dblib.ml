@@ -106,13 +106,28 @@ let test_data params _ =
                           CAST('a' AS CHAR(10)) AS c, \
                           CAST('abc' AS TEXT) AS txt, \
                           CAST(1 AS INT) AS i, \
-                          CAST(3.4 AS DOUBLE PRECISION) AS d";
+                          CAST(3.4 AS DOUBLE PRECISION) AS d, \
+                          CAST('b6702d1b-8082-4475-90c9-07e51aef9e7c' AS UNIQUEIDENTIFIER) AS u";
       Dblib.results conn
       |> assert_bool "query has results";
+      Dblib.numcols conn
+      |> assert_equal ~printer:string_of_int 6;
+      Dblib.coltype conn 1
+      |> assert_equal ~printer:Dblib.string_of_col_type SYBCHAR;
+      Dblib.coltype conn 2
+      |> assert_equal ~printer:Dblib.string_of_col_type SYBCHAR;
+      Dblib.coltype conn 3
+      |> assert_equal ~printer:Dblib.string_of_col_type SYBTEXT;
+      Dblib.coltype conn 4
+      |> assert_equal ~printer:Dblib.string_of_col_type SYBINT4;
+      Dblib.coltype conn 5
+      |> assert_equal ~printer:Dblib.string_of_col_type SYBFLT8;
+      Dblib.coltype conn 6
+      |> assert_equal ~printer:Dblib.string_of_col_type SYBUNIQUE;
       Dblib.nextrow conn
       |> assert_equal ~printer:string_of_row
            Dblib.([STRING "a"; STRING "a         "; STRING "abc";
-                   INT 1; FLOAT 3.4])
+                   INT 1; FLOAT 3.4 ; STRING "B6702D1B-8082-4475-90C9-07E51AEF9E7C"])
     )
 
 let test_insert params _ =

@@ -151,6 +151,7 @@ type col_type =
   | SYBMONEY4 (* 17 *) | SYBMONEY (* 18 *) | SYBMONEYN (* 19 *)
   | SYBREAL (* 20 *)
   | SYBBINARY (* 21 *) | SYBVARBINARY (* 22 *)
+  | SYBUNIQUE (* 23 *)
 
 let string_of_col_type = function
   | SYBCHAR -> "CHAR"
@@ -168,6 +169,7 @@ let string_of_col_type = function
   | SYBBINARY -> "BINARY" | SYBVARBINARY -> "VARBINARY"
   | SYBNUMERIC -> "NUMERIC"
   | SYBDECIMAL -> "DECIMAL"
+  | SYBUNIQUE -> "UNIQUEIDENTIFIER"
 ;;
 external coltype : dbprocess -> int -> col_type = "ocaml_freetds_dbcoltype"
 

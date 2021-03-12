@@ -145,6 +145,7 @@ type col_type =
   | SYBMONEY4 | SYBMONEY | SYBMONEYN
   | SYBREAL
   | SYBBINARY | SYBVARBINARY
+  | SYBUNIQUE
 
 val string_of_col_type : col_type -> string
 (** Returns a string description of the column type. *)

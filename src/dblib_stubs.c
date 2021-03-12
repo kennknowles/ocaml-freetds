@@ -552,6 +552,7 @@ CAMLexport value ocaml_freetds_dbcoltype(value vdbproc, value vc)
   case SYBREAL: CAMLreturn(Val_int(20));
   case SYBBINARY: CAMLreturn(Val_int(21));
   case SYBVARBINARY: CAMLreturn(Val_int(22));
+  case 36 /* SYBUNIQUE */: CAMLreturn(Val_int(23));
   }
   if (ty == -1)
     /* The handler catches this exception.  Raise a compatible one. */
@@ -711,6 +712,13 @@ CAMLexport value ocaml_freetds_get_data(value vdbproc, value vcol,
   case SYBVARCHAR:
   case SYBTEXT:
     COPY_STRING(vres, data, len);
+    CONSTRUCTOR(0, vres);
+    break;
+  // SYBUNIQUE is not consistently exported in FreeTDS headers due to "an oversight"
+  case 36 /* SYBUNIQUE */:
+    // Unique identifier should be 16 bytes
+    // When converting to a string, the result is 36 characters (32 hex characters + 4 dashes)
+    CONVERT_STRING(36);
     CONSTRUCTOR(0, vres);
     break;
   case SYBIMAGE:
