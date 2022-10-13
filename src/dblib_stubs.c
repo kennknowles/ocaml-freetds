@@ -667,6 +667,7 @@ CAMLexport value ocaml_freetds_get_data(value vdbproc, value vcol,
   int col = Int_val(vcol), ty, data_int;
   double data_double;
   DBDATEREC di;
+  DBDATEREC2 di2;
   RETCODE ret;
 
 /* Taken from the implementation of caml_copy_string */
@@ -803,6 +804,38 @@ CAMLexport value ocaml_freetds_get_data(value vdbproc, value vcol,
     Store_field(vconstructor, 5, Val_int(di.datesecond));
     Store_field(vconstructor, 6, Val_int(di.datemsecond));
     Store_field(vconstructor, 7, Val_int(di.datetzone));
+#endif
+    break;
+
+  case SYBMSDATETIME2:
+    ret = dbanydatecrack (dbproc, &di2, SYBMSDATETIME2, data);
+    maybe_raise_userdata_exn(dbproc);
+    if(ret == FAIL) {
+      raise_error(SEVERITY_CONSISTENCY,
+                  "Freetds.Dblib.nextrow: date conversion failed. "
+                  "Please contact the author of these bindings.");
+    }
+    vconstructor = caml_alloc(/* size: */ 8, /* tag: */ 7);
+#ifdef MSDBLIB
+    /* http://msdn.microsoft.com/en-us/library/aa937027%28SQL.80%29.aspx */
+    Store_field(vconstructor, 0, Val_int(di2.year));
+    Store_field(vconstructor, 1, Val_int(di2.month));
+    Store_field(vconstructor, 2, Val_int(di2.day));
+    Store_field(vconstructor, 3, Val_int(di2.hour));
+    Store_field(vconstructor, 4, Val_int(di2.minute));
+    Store_field(vconstructor, 5, Val_int(di2.second));
+    Store_field(vconstructor, 6, Val_int(di2.nanosecond / 1000));
+    Store_field(vconstructor, 7, Val_int(di2.tzone));
+#else
+    /* From sybdb.h */
+    Store_field(vconstructor, 0, Val_int(di2.dateyear));
+    Store_field(vconstructor, 1, Val_int(di2.datemonth));
+    Store_field(vconstructor, 2, Val_int(di2.datedmonth));
+    Store_field(vconstructor, 3, Val_int(di2.datehour));
+    Store_field(vconstructor, 4, Val_int(di2.dateminute));
+    Store_field(vconstructor, 5, Val_int(di2.datesecond));
+    Store_field(vconstructor, 6, Val_int(di2.datensecond/1000));
+    Store_field(vconstructor, 7, Val_int(di2.datetzone));
 #endif
     break;
 
